@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Encarregado - PELOG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body style="background:#1f2e3a;">
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" style="width:100px;">
+            <h2 style="color:white;">Painel do Encarregado</h2>
+        </div>
+
+        <a href="/logout" class="btn btn-danger">Sair</a>
+    </div>
+
+    <div class="bg-white p-4 rounded mt-4">
+
+        <h4>Caminhões recebidos da portaria</h4>
+
+        <table class="table table-bordered table-hover mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>Empresa</th>
+                    <th>Material</th>
+                    <th>Status</th>
+                    <th>Doca</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for c in caminhoes %}
+                <tr>
+                    <td>{{ c.placa }}</td>
+                    <td>{{ c.motorista }}</td>
+                    <td>{{ c.empresa }}</td>
+                    <td>{{ c.tipo_material }}</td>
+
+                    <td>
+                        {% if c.status == 'aguardando' %}
+                            <span class="badge bg-warning text-dark">Aguardando</span>
+                        {% elif c.status == 'autorizado' %}
+                            <span class="badge bg-info text-dark">Autorizado</span>
+                        {% elif c.status == 'na_doca' %}
+                            <span class="badge bg-success">Na Doca</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if c.doca %}
+                            <strong>{{ c.doca }}</strong>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>
+
+                        {% if c.status == 'aguardando' %}
+                            <form method="POST" action="/autorizar/{{ c.id }}" class="d-flex gap-2 mb-2">
+                                <select name="doca" class="form-select" required>
+                                    <option value="">Escolher doca</option>
+                                    <option value="Doca Cross">Doca Cross</option>
+                                    <option value="Doca CD">Doca CD</option>
+                                    <option value="Doca 01">Doca 01</option>
+                                    <option value="Doca 02">Doca 02</option>
+                                    <option value="Doca 03">Doca 03</option>
+                                </select>
+
+                                <button class="btn btn-primary">Autorizar</button>
+                            </form>
+
+                            <a href="/cadastro_operacional/{{ c.id }}" class="btn btn-warning btn-sm">
+                                Cadastrar Operacional
+                            </a>
+
+                        {% elif c.status == 'autorizado' %}
+
+                            <div class="d-flex gap-2">
+                                <form method="POST" action="/iniciar_doca/{{ c.id }}">
+                                    <button class="btn btn-success btn-sm">Iniciar Doca</button>
+                                </form>
+
+                                <a href="/cadastro_operacional/{{ c.id }}" class="btn btn-warning btn-sm">
+                                    Cadastrar Operacional
+                                </a>
+                            </div>
+
+                        {% elif c.status == 'na_doca' %}
+
+                            <div class="d-flex gap-2">
+                                <form method="POST" action="/finalizar_doca/{{ c.id }}">
+                                    <button class="btn btn-danger btn-sm">Finalizar</button>
+                                </form>
+
+                                <a href="/cadastro_operacional/{{ c.id }}" class="btn btn-warning btn-sm">
+                                    Cadastrar Operacional
+                                </a>
+                            </div>
+
+                        {% endif %}
+
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>

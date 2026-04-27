@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Registros Encarregado - PELOG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1f2e3a;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+
+        .titulo {
+            color: white;
+            font-weight: bold;
+        }
+
+        .logo {
+            width: 120px;
+        }
+
+        .table thead {
+            background: #1f2e3a;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container-fluid px-4">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+            <h2 class="titulo">Registros Operacionais dos Encarregados</h2>
+        </div>
+
+        <div>
+            <span class="text-white me-3">
+                Usuário: {{ usuario }} | Perfil: {{ perfil }}
+            </span>
+
+            <a href="{{ url_for('admin') }}" class="btn btn-secondary me-2">Voltar</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Sair</a>
+        </div>
+    </div>
+
+    <div class="box">
+
+        <form method="GET" action="/registros_encarregado" class="row g-2">
+
+            <div class="col-md-6">
+                <input 
+                    type="text" 
+                    name="busca" 
+                    class="form-control" 
+                    placeholder="Buscar por Placa, Motorista, CPF, Empresa, Material, NF ou Doca"
+                    value="{{ busca or '' }}">
+            </div>
+
+            <div class="col-md-2">
+                <input 
+                    type="date" 
+                    name="data_inicio" 
+                    class="form-control"
+                    value="{{ data_inicio or '' }}">
+            </div>
+
+            <div class="col-md-2">
+                <input 
+                    type="date" 
+                    name="data_fim" 
+                    class="form-control"
+                    value="{{ data_fim or '' }}">
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">Pesquisar</button>
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="box">
+        <h4>Dados cadastrados pelos encarregados</h4>
+
+        <table class="table table-bordered table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>ID Registro</th>
+                    <th>Cadastrado Por</th>
+                    <th>Data Cadastro</th>
+
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>CPF</th>
+                    <th>Transportadora</th>
+                    <th>Fornecedor/Material</th>
+                    <th>Nota Fiscal</th>
+                    <th>Doca</th>
+                    <th>Entrada Portaria</th>
+                    <th>Autorização</th>
+
+                    <th>DTS Observação</th>
+                    <th>Produtos (SKU)</th>
+                    <th>Notas</th>
+                    <th>Diferença da OS</th>
+                    <th>Qtd NFS</th>
+                    <th>Paletes NF</th>
+                    <th>Paletes Conferido</th>
+                    <th>Peso (KG)</th>
+                    <th>Diferença de Produtos</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for registro in registros %}
+                <tr>
+                    <td>{{ registro.id }}</td>
+                    <td>{{ registro.operacional_cadastrado_por or '-' }}</td>
+
+                    <td>
+                        {% if registro.horario_operacional %}
+                            {{ registro.horario_operacional.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>{{ registro.placa }}</td>
+                    <td>{{ registro.motorista }}</td>
+                    <td>{{ registro.cpf }}</td>
+                    <td>{{ registro.empresa }}</td>
+                    <td>{{ registro.tipo_material }}</td>
+                    <td>{{ registro.nota_fiscal }}</td>
+                    <td>{{ registro.doca or '-' }}</td>
+
+                    <td>
+                        {% if registro.horario %}
+                            {{ registro.horario.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if registro.horario_autorizacao %}
+                            {{ registro.horario_autorizacao.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>{{ registro.dts_observacao or '-' }}</td>
+                    <td>{{ registro.produtos_sku or '-' }}</td>
+                    <td>{{ registro.notas or '-' }}</td>
+                    <td>{{ registro.diferenca_os or '-' }}</td>
+                    <td>{{ registro.quantidade_nfs or '-' }}</td>
+                    <td>{{ registro.qtd_paletes_nf or '-' }}</td>
+                    <td>{{ registro.qtd_paletes_conferido or '-' }}</td>
+                    <td>{{ registro.peso_kg or '-' }}</td>
+                    <td>{{ registro.diferenca_produtos or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if registros|length == 0 %}
+            <div class="alert alert-warning">
+                Nenhum cadastro operacional encontrado.
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+</body>
+</html>

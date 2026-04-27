@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro Operacional - PELOG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1f2e3a;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .titulo {
+            color: white;
+            font-weight: bold;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" style="width:100px;">
+            <h2 class="titulo">Cadastro Operacional</h2>
+        </div>
+
+        <div>
+            <span class="text-white me-3">
+                Usuário: {{ usuario }} | Perfil: {{ perfil }}
+            </span>
+
+            <a href="{{ url_for('encarregado') }}" class="btn btn-secondary me-2">Voltar</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Sair</a>
+        </div>
+
+    </div>
+
+    <div class="box">
+        <h5>Dados vindos da Portaria</h5>
+
+        <p>
+            <strong>Placa:</strong> {{ caminhao.placa }} |
+            <strong>Motorista:</strong> {{ caminhao.motorista }} |
+            <strong>CPF:</strong> {{ caminhao.cpf }} |
+            <strong>Transportadora:</strong> {{ caminhao.empresa }} |
+            <strong>Fornecedor/Material:</strong> {{ caminhao.tipo_material }} |
+            <strong>Nota Fiscal:</strong> {{ caminhao.nota_fiscal }} |
+            <strong>Doca:</strong> {{ caminhao.doca or '-' }}
+        </p>
+    </div>
+
+    <div class="box">
+        <h4>Informações Operacionais</h4>
+
+        <form method="POST">
+
+            <div class="row">
+
+                <div class="col-md-12 mb-3">
+                    <label>DTS Observação</label>
+                    <textarea name="dts_observacao" class="form-control" rows="4" required>{{ registro.dts_observacao or '' }}</textarea>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Produtos (SKU)</label>
+                    <input type="text" name="produtos_sku" class="form-control" value="{{ registro.produtos_sku or '' }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Notas</label>
+                    <input type="text" name="notas" class="form-control" value="{{ registro.notas or '' }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Diferença da OS</label>
+                    <input type="text" name="diferenca_os" class="form-control" value="{{ registro.diferenca_os or '' }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Quantidade de Notas Fiscais (NFS)</label>
+                    <input type="number" name="quantidade_nfs" class="form-control" value="{{ registro.quantidade_nfs or '' }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Qtd Paletes Relacionado NF</label>
+                    <input type="number" name="qtd_paletes_nf" class="form-control" value="{{ registro.qtd_paletes_nf or '' }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Qtd Paletes Conferido</label>
+                    <input type="number" name="qtd_paletes_conferido" class="form-control" value="{{ registro.qtd_paletes_conferido or '' }}">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label>Peso (KG)</label>
+                    <input type="number" step="0.01" name="peso_kg" class="form-control" value="{{ registro.peso_kg or '' }}">
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label>Diferença de Produtos</label>
+                    <textarea name="diferenca_produtos" class="form-control" rows="4">{{ registro.diferenca_produtos or '' }}</textarea>
+                </div>
+
+            </div>
+
+            <button class="btn btn-success">Salvar Registro</button>
+
+        </form>
+    </div>
+
+</div>
+
+</body>
+</html>

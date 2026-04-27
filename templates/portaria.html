@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Portaria - PELOG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1f2e3a;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .table thead {
+            background: #1f2e3a;
+            color: white;
+        }
+
+        .linha-autorizado {
+            background-color: #d1ecf1 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" style="width:100px;">
+            <h2 style="color:white;">Portaria</h2>
+        </div>
+
+        <a href="/logout" class="btn btn-danger">Sair</a>
+    </div>
+
+    <div class="box">
+        <h4>Registrar Caminhão</h4>
+
+        <form method="POST" action="/registrar">
+            <div class="row">
+                <div class="col">
+                    <input type="text" name="placa" class="form-control" placeholder="Placa" required>
+                </div>
+
+                <div class="col">
+                    <input type="text" name="motorista" class="form-control" placeholder="Motorista" required>
+                </div>
+
+                <div class="col">
+                    <input type="text" name="cpf" class="form-control" placeholder="CPF" required>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="row">
+                <div class="col">
+                    <input type="text" name="empresa" class="form-control" placeholder="Empresa" required>
+                </div>
+
+                <div class="col">
+                    <input type="text" name="tipo_material" class="form-control" placeholder="Material" required>
+                </div>
+
+                <div class="col">
+                    <input type="text" name="nota_fiscal" class="form-control" placeholder="Nota Fiscal" required>
+                </div>
+            </div>
+
+            <br>
+
+            <button class="btn btn-primary">Registrar</button>
+        </form>
+    </div>
+
+    <div class="box">
+        <h4>Caminhões</h4>
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>Empresa</th>
+                    <th>Material</th>
+                    <th>Status</th>
+                    <th>Doca</th>
+                </tr>
+            </thead>
+
+            <tbody id="tabela-portaria">
+                {% for c in caminhoes %}
+                <tr class="{% if c.status == 'autorizado' %}linha-autorizado{% endif %}">
+                    <td>{{ c.placa }}</td>
+                    <td>{{ c.motorista }}</td>
+                    <td>{{ c.empresa }}</td>
+                    <td>{{ c.tipo_material }}</td>
+
+                    <td>
+                        {% if c.status == 'aguardando' %}
+                            <span class="badge bg-warning text-dark">Aguardando</span>
+                        {% elif c.status == 'autorizado' %}
+                            <span class="badge bg-info text-dark">Autorizado</span>
+                        {% elif c.status == 'na_doca' %}
+                            <span class="badge bg-success">Na Doca</span>
+                        {% endif %}
+                    </td>
+
+                    <td>{{ c.doca or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<audio id="alerta" src="{{ url_for('static', filename='alerta.mp3') }}"></audio>
+
+<script>
+    let autorizadosAnteriores = new Set();
+
+    function badgeStatus(status) {
+        if (status === "aguardando") {
+            return '<span class="badge bg-warning text-dark">Aguardando</span>';
+        }
+
+        if (status === "autorizado") {
+            return '<span class="badge bg-info text-dark">Autorizado</span>';
+        }
+
+        if (status === "na_doca") {
+            return '<span class="badge bg-success">Na Doca</span>';
+        }
+
+        return '<span class="badge bg-secondary">-</span>';
+    }
+
+    function atualizarTabela() {
+        fetch("/api/portaria")
+            .then(response => response.json())
+            .then(data => {
+                let tbody = document.getElementById("tabela-portaria");
+                let html = "";
+
+                data.forEach(c => {
+                    let classe = c.status === "autorizado" ? "linha-autorizado" : "";
+
+                    html += `
+                        <tr class="${classe}">
+                            <td>${c.placa || "-"}</td>
+                            <td>${c.motorista || "-"}</td>
+                            <td>${c.empresa || "-"}</td>
+                            <td>${c.tipo_material || "-"}</td>
+                            <td>${badgeStatus(c.status)}</td>
+                            <td><strong>${c.doca || "-"}</strong></td>
+                        </tr>
+                    `;
+
+                    if (c.status === "autorizado" && !autorizadosAnteriores.has(c.id)) {
+                        tocarAlerta();
+                    }
+                });
+
+                tbody.innerHTML = html;
+
+                autorizadosAnteriores = new Set(
+                    data
+                        .filter(c => c.status === "autorizado")
+                        .map(c => c.id)
+                );
+            });
+    }
+
+    function tocarAlerta() {
+        const audio = document.getElementById("alerta");
+
+        audio.play().catch(() => {
+            console.log("Áudio bloqueado pelo navegador. Clique uma vez na tela da portaria.");
+        });
+    }
+
+    atualizarTabela();
+    setInterval(atualizarTabela, 5000);
+</script>
+
+</body>
+</html>

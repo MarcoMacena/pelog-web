@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - PELOG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1f2e3a;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+
+        .table thead {
+            background: #1f2e3a;
+            color: white;
+        }
+
+        .titulo {
+            color: white;
+            font-weight: bold;
+        }
+
+        .badge-pendente {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .badge-autorizado {
+            background-color: #198754;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container-fluid px-4">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <h2 class="titulo">PELOG Web</h2>
+
+        <div>
+            <span class="text-white me-3">
+                Usuário: {{ usuario }} | Perfil: {{ perfil }}
+            </span>
+
+            {% if perfil == "admin" %}
+                <a href="{{ url_for('registros_encarregado') }}" class="btn btn-info me-2">
+                    Registros Encarregado
+                </a>
+            {% endif %}
+
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Sair</a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-success mt-3">
+                {{ messages[0] }}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% if perfil == "portaria" %}
+    <div class="box">
+        <h4>Registrar Entrada do Caminhão</h4>
+
+        <form method="POST" action="{{ url_for('entrada') }}">
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+                    <label>Placa</label>
+                    <input type="text" name="placa" class="form-control" required>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label>Motorista</label>
+                    <input type="text" name="motorista" class="form-control" required>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label>CPF</label>
+                    <input type="text" name="cpf" class="form-control">
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label>Transportadora</label>
+                    <input type="text" name="transportadora" class="form-control">
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label>Fornecedor</label>
+                    <input type="text" name="fornecedor" class="form-control">
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label>Nota Fiscal</label>
+                    <input type="text" name="nota_fiscal" class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>Escolha a Doca</label>
+
+                    <div class="d-flex gap-3 mt-2">
+                        <input type="radio" class="btn-check" name="doca" id="doca_cross" value="DOCA CROSS" required>
+                        <label class="btn btn-outline-primary" for="doca_cross">
+                            Doca CROSS
+                        </label>
+
+                        <input type="radio" class="btn-check" name="doca" id="doca_cd" value="DOCA CD" required>
+                        <label class="btn btn-outline-success" for="doca_cd">
+                            Doca CD
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <button class="btn btn-success">Registrar Entrada</button>
+        </form>
+    </div>
+
+    <div class="box">
+        <h5>Acesso da Portaria</h5>
+        <p>
+            A portaria cadastra o caminhão e escolhe para qual doca ele será enviado.
+            Os dados serão direcionados para o encarregado responsável.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if perfil == "admin" %}
+    <div class="box">
+        <h4>Registros Gerais da Portaria</h4>
+
+        <table class="table table-bordered table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>CPF</th>
+                    <th>Transportadora</th>
+                    <th>Fornecedor</th>
+                    <th>Nota Fiscal</th>
+                    <th>Doca</th>
+                    <th>Status</th>
+                    <th>Autorizado Por</th>
+                    <th>Entrada</th>
+                    <th>Autorização</th>
+                    <th>Saída</th>
+                    <th>Tempo</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for caminhao in caminhoes %}
+                <tr>
+                    <td>{{ caminhao.id }}</td>
+                    <td>{{ caminhao.placa }}</td>
+                    <td>{{ caminhao.motorista }}</td>
+                    <td>{{ caminhao.cpf }}</td>
+                    <td>{{ caminhao.empresa }}</td>
+                    <td>{{ caminhao.tipo_material }}</td>
+                    <td>{{ caminhao.nota_fiscal }}</td>
+                    <td>{{ caminhao.doca }}</td>
+
+                    <td>
+                        {% if caminhao.autorizado %}
+                            <span class="badge badge-autorizado">Autorizado</span>
+                        {% else %}
+                            <span class="badge badge-pendente">Pendente</span>
+                        {% endif %}
+                    </td>
+
+                    <td>{{ caminhao.autorizado_por if caminhao.autorizado_por else "-" }}</td>
+
+                    <td>
+                        {% if caminhao.horario %}
+                            {{ caminhao.horario.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if caminhao.horario_autorizacao %}
+                            {{ caminhao.horario_autorizacao.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if caminhao.horario_saida %}
+                            {{ caminhao.horario_saida.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            Em aberto
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if caminhao.horario_saida %}
+                            {% set tempo = caminhao.horario_saida - caminhao.horario %}
+                            {{ tempo }}
+                        {% else %}
+                            Contando
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if not caminhao.horario_saida %}
+                            <a href="{{ url_for('saida', id=caminhao.id) }}" class="btn btn-sm btn-danger">
+                                Saída
+                            </a>
+                        {% else %}
+                            Finalizado
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if caminhoes|length == 0 %}
+            <div class="alert alert-warning">
+                Nenhum registro encontrado.
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if perfil == "encarregado_cross" or perfil == "encarregado_cd" %}
+    <div class="box">
+
+        {% if perfil == "encarregado_cross" %}
+            <h4>Registros da Doca CROSS</h4>
+        {% else %}
+            <h4>Registros da Doca CD</h4>
+        {% endif %}
+
+        <table class="table table-bordered table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>CPF</th>
+                    <th>Transportadora</th>
+                    <th>Fornecedor</th>
+                    <th>Nota Fiscal</th>
+                    <th>Doca</th>
+                    <th>Status</th>
+                    <th>Entrada</th>
+                    <th>Autorização</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for caminhao in caminhoes %}
+                <tr>
+                    <td>{{ caminhao.id }}</td>
+                    <td>{{ caminhao.placa }}</td>
+                    <td>{{ caminhao.motorista }}</td>
+                    <td>{{ caminhao.cpf }}</td>
+                    <td>{{ caminhao.empresa }}</td>
+                    <td>{{ caminhao.tipo_material }}</td>
+                    <td>{{ caminhao.nota_fiscal }}</td>
+                    <td>{{ caminhao.doca }}</td>
+
+                    <td>
+                        {% if caminhao.autorizado %}
+                            <span class="badge badge-autorizado">Autorizado</span>
+                        {% else %}
+                            <span class="badge badge-pendente">Pendente</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if caminhao.horario %}
+                            {{ caminhao.horario.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if caminhao.horario_autorizacao %}
+                            {{ caminhao.horario_autorizacao.strftime("%d/%m/%Y %H:%M") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if not caminhao.autorizado %}
+                            <a href="{{ url_for('autorizar', id=caminhao.id) }}" class="btn btn-sm btn-success">
+                                Autorizar
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('cadastro_operacional', id=caminhao.id) }}" class="btn btn-sm btn-primary">
+                                Cadastrar Operação
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if caminhoes|length == 0 %}
+            <div class="alert alert-warning">
+                Nenhum caminhão enviado para esta doca.
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>
