@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
@@ -6,9 +7,12 @@ from openpyxl import Workbook
 from io import BytesIO
 
 app = Flask(__name__)
-app.secret_key = "pelog_secret_key"
+app.secret_key = os.environ.get("SECRET_KEY", "pelog_secret_key")
 
-DATABASE_URL = "dbname=pelog user=postgres password=123456 host=localhost port=5432"
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    DATABASE_URL = "dbname=pelog user=postgres password=123456 host=localhost port=5432"
 
 
 def conectar():
@@ -596,4 +600,5 @@ def api_tv():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=True)
