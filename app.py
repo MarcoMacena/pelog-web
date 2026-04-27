@@ -35,36 +35,39 @@ def criar_colunas():
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS caminhoes (
-            id SERIAL PRIMARY KEY,
-            placa VARCHAR(20),
-            motorista VARCHAR(100),
-            cpf VARCHAR(20),
-            empresa VARCHAR(100),
-            tipo_material VARCHAR(100),
-            nota_fiscal VARCHAR(50),
-            horario TIMESTAMP,
-
-            doca VARCHAR(50),
-            status VARCHAR(50),
-            autorizado_por VARCHAR(100),
-            horario_autorizacao TIMESTAMP,
-
-            inicio_doca TIMESTAMP,
-            fim_doca TIMESTAMP,
-
-            dts_observacao TEXT,
-            produtos_sku VARCHAR(255),
-            notas VARCHAR(255),
-            diferenca_os VARCHAR(255),
-            quantidade_nfs INTEGER,
-            qtd_paletes_nf INTEGER,
-            qtd_paletes_conferido INTEGER,
-            peso_kg NUMERIC(10,2),
-            diferenca_produtos TEXT,
-            operacional_cadastrado_por VARCHAR(100),
-            horario_operacional TIMESTAMP
+            id SERIAL PRIMARY KEY
         );
     """)
+
+    colunas = [
+        "ADD COLUMN IF NOT EXISTS placa VARCHAR(20)",
+        "ADD COLUMN IF NOT EXISTS motorista VARCHAR(100)",
+        "ADD COLUMN IF NOT EXISTS cpf VARCHAR(20)",
+        "ADD COLUMN IF NOT EXISTS empresa VARCHAR(100)",
+        "ADD COLUMN IF NOT EXISTS tipo_material VARCHAR(100)",
+        "ADD COLUMN IF NOT EXISTS nota_fiscal VARCHAR(50)",
+        "ADD COLUMN IF NOT EXISTS horario TIMESTAMP",
+        "ADD COLUMN IF NOT EXISTS doca VARCHAR(50)",
+        "ADD COLUMN IF NOT EXISTS status VARCHAR(50)",
+        "ADD COLUMN IF NOT EXISTS autorizado_por VARCHAR(100)",
+        "ADD COLUMN IF NOT EXISTS horario_autorizacao TIMESTAMP",
+        "ADD COLUMN IF NOT EXISTS inicio_doca TIMESTAMP",
+        "ADD COLUMN IF NOT EXISTS fim_doca TIMESTAMP",
+        "ADD COLUMN IF NOT EXISTS dts_observacao TEXT",
+        "ADD COLUMN IF NOT EXISTS produtos_sku VARCHAR(255)",
+        "ADD COLUMN IF NOT EXISTS notas VARCHAR(255)",
+        "ADD COLUMN IF NOT EXISTS diferenca_os VARCHAR(255)",
+        "ADD COLUMN IF NOT EXISTS quantidade_nfs INTEGER",
+        "ADD COLUMN IF NOT EXISTS qtd_paletes_nf INTEGER",
+        "ADD COLUMN IF NOT EXISTS qtd_paletes_conferido INTEGER",
+        "ADD COLUMN IF NOT EXISTS peso_kg NUMERIC(10,2)",
+        "ADD COLUMN IF NOT EXISTS diferenca_produtos TEXT",
+        "ADD COLUMN IF NOT EXISTS operacional_cadastrado_por VARCHAR(100)",
+        "ADD COLUMN IF NOT EXISTS horario_operacional TIMESTAMP"
+    ]
+
+    for coluna in colunas:
+        cur.execute(f"ALTER TABLE caminhoes {coluna};")
 
     conn.commit()
     cur.close()
