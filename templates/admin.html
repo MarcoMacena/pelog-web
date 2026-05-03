@@ -34,7 +34,6 @@
 
 <div class="container-fluid px-5">
 
-    <!-- TOPO -->
     <div class="d-flex justify-content-between align-items-center mt-4">
 
         <div>
@@ -49,7 +48,6 @@
 
     </div>
 
-    <!-- BUSCA E RELATÓRIO -->
     <div class="box">
 
         <form method="GET" action="/admin" class="row g-2">
@@ -59,7 +57,7 @@
                     type="text" 
                     name="busca" 
                     class="form-control" 
-                    placeholder="Buscar por Placa, Motorista, CPF, Empresa, Material, NF ou Doca"
+                    placeholder="Buscar por Placa, Motorista, CPF, Empresa, Material, Nota Fiscal/DTS, Setor ou Doca"
                     value="{{ busca or '' }}">
             </div>
 
@@ -95,7 +93,6 @@
 
     </div>
 
-    <!-- TABELA PRINCIPAL -->
     <div class="box">
 
         <h4>Visão Geral dos Caminhões</h4>
@@ -111,8 +108,9 @@
                         <th>CPF</th>
                         <th>Empresa</th>
                         <th>Material</th>
-                        <th>NF</th>
-                        <th>Doca</th>
+                        <th>Nota Fiscal/DTS</th>
+                        <th>Setor</th>
+                        <th>Doca Exata</th>
                         <th>Status</th>
                         <th>Entrada Portaria</th>
                         <th>Autorizado Por</th>
@@ -142,10 +140,21 @@
                         <td>{{ c.empresa }}</td>
                         <td>{{ c.tipo_material }}</td>
                         <td>{{ c.nota_fiscal }}</td>
+
+                        <td>
+                            {% if c.setor_doca == 'CROSS' %}
+                                <span class="badge bg-success">Doca CROSS</span>
+                            {% elif c.setor_doca == 'CD' %}
+                                <span class="badge bg-primary">Doca CD</span>
+                            {% else %}
+                                <span class="badge bg-secondary">-</span>
+                            {% endif %}
+                        </td>
+
                         <td>{{ c.doca or '-' }}</td>
 
                         <td>
-                            {% if c.status == 'aguardando' %}
+                            {% if c.status == 'aguardando' or not c.status %}
                                 <span class="badge bg-warning text-dark">Aguardando</span>
                             {% elif c.status == 'autorizado' %}
                                 <span class="badge bg-info text-dark">Autorizado</span>

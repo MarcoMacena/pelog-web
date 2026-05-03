@@ -27,6 +27,15 @@
         .linha-autorizado {
             background-color: #d1ecf1 !important;
         }
+
+        .linha-doca {
+            background-color: #d4edda !important;
+        }
+
+        .btn-setor {
+            min-width: 170px;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -73,7 +82,28 @@
                 </div>
 
                 <div class="col">
-                    <input type="text" name="nota_fiscal" class="form-control" placeholder="Nota Fiscal" required>
+                    <input type="text" name="nota_fiscal" class="form-control" placeholder="Nota Fiscal/DTS" required>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="box mt-3" style="box-shadow:none; border:1px solid #ddd;">
+                <h5>Enviar para qual setor?</h5>
+                <p class="text-muted mb-3">
+                    A portaria escolhe o setor. O encarregado depois escolhe a doca exata.
+                </p>
+
+                <div class="d-flex gap-3">
+                    <input type="radio" class="btn-check" name="setor_doca" id="setor_cross" value="CROSS" required>
+                    <label class="btn btn-success btn-setor" for="setor_cross">
+                        Doca CROSS
+                    </label>
+
+                    <input type="radio" class="btn-check" name="setor_doca" id="setor_cd" value="CD" required>
+                    <label class="btn btn-primary btn-setor" for="setor_cd">
+                        Doca CD
+                    </label>
                 </div>
             </div>
 
@@ -93,6 +123,8 @@
                     <th>Motorista</th>
                     <th>Empresa</th>
                     <th>Material</th>
+                    <th>Nota Fiscal/DTS</th>
+                    <th>Setor</th>
                     <th>Status</th>
                     <th>Doca</th>
                 </tr>
@@ -100,11 +132,22 @@
 
             <tbody id="tabela-portaria">
                 {% for c in caminhoes %}
-                <tr class="{% if c.status == 'autorizado' %}linha-autorizado{% endif %}">
+                <tr class="{% if c.status == 'autorizado' %}linha-autorizado{% elif c.status == 'na_doca' %}linha-doca{% endif %}">
                     <td>{{ c.placa }}</td>
                     <td>{{ c.motorista }}</td>
                     <td>{{ c.empresa }}</td>
                     <td>{{ c.tipo_material }}</td>
+                    <td>{{ c.nota_fiscal }}</td>
+
+                    <td>
+                        {% if c.setor_doca == 'CROSS' %}
+                            <span class="badge bg-success">Doca CROSS</span>
+                        {% elif c.setor_doca == 'CD' %}
+                            <span class="badge bg-primary">Doca CD</span>
+                        {% else %}
+                            <span class="badge bg-secondary">-</span>
+                        {% endif %}
+                    </td>
 
                     <td>
                         {% if c.status == 'aguardando' %}
@@ -113,6 +156,10 @@
                             <span class="badge bg-info text-dark">Autorizado</span>
                         {% elif c.status == 'na_doca' %}
                             <span class="badge bg-success">Na Doca</span>
+                        {% elif c.status == 'finalizado' %}
+                            <span class="badge bg-secondary">Finalizado</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Aguardando</span>
                         {% endif %}
                     </td>
 
@@ -131,7 +178,7 @@
     let autorizadosAnteriores = new Set();
 
     function badgeStatus(status) {
-        if (status === "aguardando") {
+        if (status === "aguardando" || status === null) {
             return '<span class="badge bg-warning text-dark">Aguardando</span>';
         }
 
@@ -141,6 +188,22 @@
 
         if (status === "na_doca") {
             return '<span class="badge bg-success">Na Doca</span>';
+        }
+
+        if (status === "finalizado") {
+            return '<span class="badge bg-secondary">Finalizado</span>';
+        }
+
+        return '<span class="badge bg-secondary">-</span>';
+    }
+
+    function badgeSetor(setor) {
+        if (setor === "CROSS") {
+            return '<span class="badge bg-success">Doca CROSS</span>';
+        }
+
+        if (setor === "CD") {
+            return '<span class="badge bg-primary">Doca CD</span>';
         }
 
         return '<span class="badge bg-secondary">-</span>';
@@ -154,7 +217,15 @@
                 let html = "";
 
                 data.forEach(c => {
-                    let classe = c.status === "autorizado" ? "linha-autorizado" : "";
+                    let classe = "";
+
+                    if (c.status === "autorizado") {
+                        classe = "linha-autorizado";
+                    }
+
+                    if (c.status === "na_doca") {
+                        classe = "linha-doca";
+                    }
 
                     html += `
                         <tr class="${classe}">
@@ -162,6 +233,8 @@
                             <td>${c.motorista || "-"}</td>
                             <td>${c.empresa || "-"}</td>
                             <td>${c.tipo_material || "-"}</td>
+                            <td>${c.nota_fiscal || "-"}</td>
+                            <td>${badgeSetor(c.setor_doca)}</td>
                             <td>${badgeStatus(c.status)}</td>
                             <td><strong>${c.doca || "-"}</strong></td>
                         </tr>

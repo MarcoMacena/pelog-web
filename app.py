@@ -3,6 +3,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from openpyxl import Workbook
 from io import BytesIO
 
@@ -19,6 +20,13 @@ def conectar():
     return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
 
+FUSO_BRASIL = ZoneInfo("America/Sao_Paulo")
+
+
+def agora_brasil():
+    return datetime.now(FUSO_BRASIL).replace(tzinfo=None)
+
+
 USUARIOS = {
     "admin": {"senha": "admin123", "tipo": "admin"},
     "portaria": {"senha": "portaria123", "tipo": "portaria"},
@@ -27,6 +35,16 @@ USUARIOS = {
     "jalison_cross": {"senha": "123", "tipo": "encarregado"},
     "elaine_cross": {"senha": "123", "tipo": "encarregado"},
 }
+
+
+def setor_do_usuario(usuario):
+    if usuario in ["jalison_cross", "elaine_cross"]:
+        return "CROSS"
+
+    if usuario in ["pedro_cd", "jean_cd"]:
+        return "CD"
+
+    return None
 
 
 def criar_colunas():
@@ -45,7 +63,8 @@ def criar_colunas():
         "ADD COLUMN IF NOT EXISTS cpf VARCHAR(20)",
         "ADD COLUMN IF NOT EXISTS empresa VARCHAR(100)",
         "ADD COLUMN IF NOT EXISTS tipo_material VARCHAR(100)",
-        "ADD COLUMN IF NOT EXISTS nota_fiscal VARCHAR(50)",
+        "ADD COLUMN IF NOT EXISTS nota_fiscal VARCHAR(100)",
+        "ADD COLUMN IF NOT EXISTS setor_doca VARCHAR(20)",
         "ADD COLUMN IF NOT EXISTS horario TIMESTAMP",
         "ADD COLUMN IF NOT EXISTS doca VARCHAR(50)",
         "ADD COLUMN IF NOT EXISTS status VARCHAR(50)",
@@ -81,6 +100,18 @@ def iniciar():
 
 @app.route("/")
 def index():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+
+    if session.get("tipo") == "admin":
+        return redirect(url_for("admin"))
+
+    if session.get("tipo") == "portaria":
+        return redirect(url_for("portaria"))
+
+    if session.get("tipo") == "encarregado":
+        return redirect(url_for("encarregado"))
+
     return redirect(url_for("login"))
 
 
@@ -94,12 +125,7 @@ def login():
             session["usuario"] = usuario
             session["tipo"] = USUARIOS[usuario]["tipo"]
 
-            if session["tipo"] == "admin":
-                return redirect(url_for("admin"))
-            elif session["tipo"] == "portaria":
-                return redirect(url_for("portaria"))
-            elif session["tipo"] == "encarregado":
-                return redirect(url_for("encarregado"))
+            return redirect(url_for("index"))
 
         return render_template("login.html", erro="Usuário ou senha inválidos")
 
@@ -132,7 +158,12 @@ def portaria():
     cur.close()
     conn.close()
 
-    return render_template("portaria.html", caminhoes=caminhoes)
+    return render_template(
+        "portaria.html",
+        caminhoes=caminhoes,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
 
 
 @app.route("/api/portaria")
@@ -144,7 +175,16 @@ def api_portaria():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, placa, motorista, empresa, tipo_material, status, doca
+        SELECT 
+            id, 
+            placa, 
+            motorista, 
+            empresa, 
+            tipo_material, 
+            nota_fiscal,
+            setor_doca,
+            status, 
+            doca
         FROM caminhoes
         WHERE status IS NULL OR status != 'finalizado'
         ORDER BY id DESC;
@@ -163,13 +203,28 @@ def registrar():
     if session.get("tipo") != "portaria":
         return redirect(url_for("login"))
 
+    setor_doca = request.form.get("setor_doca")
+
+    if setor_doca not in ["CROSS", "CD"]:
+        return redirect(url_for("portaria"))
+
     conn = conectar()
     cur = conn.cursor()
 
     cur.execute("""
         INSERT INTO caminhoes
-        (placa, motorista, cpf, empresa, tipo_material, nota_fiscal, horario, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'aguardando');
+        (
+            placa, 
+            motorista, 
+            cpf, 
+            empresa, 
+            tipo_material, 
+            nota_fiscal, 
+            setor_doca,
+            horario, 
+            status
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'aguardando');
     """, (
         request.form.get("placa"),
         request.form.get("motorista"),
@@ -177,7 +232,8 @@ def registrar():
         request.form.get("empresa"),
         request.form.get("tipo_material"),
         request.form.get("nota_fiscal"),
-        datetime.now()
+        setor_doca,
+        agora_brasil()
     ))
 
     conn.commit()
@@ -192,28 +248,41 @@ def encarregado():
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
 
+    usuario = session.get("usuario")
+    setor = setor_do_usuario(usuario)
+
     conn = conectar()
     cur = conn.cursor()
 
     cur.execute("""
         SELECT *
         FROM caminhoes
-        WHERE status IS NULL OR status != 'finalizado'
+        WHERE setor_doca = %s
+          AND (status IS NULL OR status != 'finalizado')
         ORDER BY id DESC;
-    """)
+    """, (setor,))
 
     caminhoes = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template("encarregado.html", caminhoes=caminhoes)
+    return render_template(
+        "encarregado.html",
+        caminhoes=caminhoes,
+        usuario=usuario,
+        perfil=session.get("tipo"),
+        setor=setor
+    )
 
 
 @app.route("/autorizar/<int:id>", methods=["POST"])
 def autorizar(id):
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
+
+    usuario = session.get("usuario")
+    setor = setor_do_usuario(usuario)
 
     conn = conectar()
     cur = conn.cursor()
@@ -224,12 +293,14 @@ def autorizar(id):
             status = 'autorizado',
             autorizado_por = %s,
             horario_autorizacao = %s
-        WHERE id = %s;
+        WHERE id = %s
+          AND setor_doca = %s;
     """, (
         request.form.get("doca"),
-        session.get("usuario"),
-        datetime.now(),
-        id
+        usuario,
+        agora_brasil(),
+        id,
+        setor
     ))
 
     conn.commit()
@@ -244,6 +315,9 @@ def iniciar_doca(id):
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
 
+    usuario = session.get("usuario")
+    setor = setor_do_usuario(usuario)
+
     conn = conectar()
     cur = conn.cursor()
 
@@ -251,10 +325,12 @@ def iniciar_doca(id):
         UPDATE caminhoes
         SET status = 'na_doca',
             inicio_doca = %s
-        WHERE id = %s;
+        WHERE id = %s
+          AND setor_doca = %s;
     """, (
-        datetime.now(),
-        id
+        agora_brasil(),
+        id,
+        setor
     ))
 
     conn.commit()
@@ -269,6 +345,9 @@ def finalizar_doca(id):
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
 
+    usuario = session.get("usuario")
+    setor = setor_do_usuario(usuario)
+
     conn = conectar()
     cur = conn.cursor()
 
@@ -276,10 +355,12 @@ def finalizar_doca(id):
         UPDATE caminhoes
         SET status = 'finalizado',
             fim_doca = %s
-        WHERE id = %s;
+        WHERE id = %s
+          AND setor_doca = %s;
     """, (
-        datetime.now(),
-        id
+        agora_brasil(),
+        id,
+        setor
     ))
 
     conn.commit()
@@ -293,6 +374,9 @@ def finalizar_doca(id):
 def cadastro_operacional(id):
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
+
+    usuario = session.get("usuario")
+    setor = setor_do_usuario(usuario)
 
     conn = conectar()
     cur = conn.cursor()
@@ -311,7 +395,8 @@ def cadastro_operacional(id):
                 diferenca_produtos = %s,
                 operacional_cadastrado_por = %s,
                 horario_operacional = %s
-            WHERE id = %s;
+            WHERE id = %s
+              AND setor_doca = %s;
         """, (
             request.form.get("dts_observacao"),
             request.form.get("produtos_sku"),
@@ -322,9 +407,10 @@ def cadastro_operacional(id):
             request.form.get("qtd_paletes_conferido") or None,
             request.form.get("peso_kg") or None,
             request.form.get("diferenca_produtos"),
-            session.get("usuario"),
-            datetime.now(),
-            id
+            usuario,
+            agora_brasil(),
+            id,
+            setor
         ))
 
         conn.commit()
@@ -333,11 +419,20 @@ def cadastro_operacional(id):
 
         return redirect(url_for("encarregado"))
 
-    cur.execute("SELECT * FROM caminhoes WHERE id = %s;", (id,))
+    cur.execute("""
+        SELECT * 
+        FROM caminhoes 
+        WHERE id = %s
+          AND setor_doca = %s;
+    """, (id, setor))
+
     caminhao = cur.fetchone()
 
     cur.close()
     conn.close()
+
+    if not caminhao:
+        return redirect(url_for("encarregado"))
 
     return render_template(
         "cadastro_operacional.html",
@@ -377,11 +472,12 @@ def admin():
                 empresa ILIKE %s OR
                 tipo_material ILIKE %s OR
                 nota_fiscal ILIKE %s OR
+                setor_doca ILIKE %s OR
                 doca ILIKE %s
             )
         """
         termo = f"%{busca}%"
-        params.extend([termo, termo, termo, termo, termo, termo, termo])
+        params.extend([termo, termo, termo, termo, termo, termo, termo, termo])
 
     if data_inicio:
         query += " AND horario::date >= %s"
@@ -439,11 +535,12 @@ def registros_encarregado():
                 empresa ILIKE %s OR
                 tipo_material ILIKE %s OR
                 nota_fiscal ILIKE %s OR
+                setor_doca ILIKE %s OR
                 doca ILIKE %s
             )
         """
         termo = f"%{busca}%"
-        params.extend([termo, termo, termo, termo, termo, termo, termo])
+        params.extend([termo, termo, termo, termo, termo, termo, termo, termo])
 
     if data_inicio:
         query += " AND horario_operacional::date >= %s"
@@ -496,8 +593,8 @@ def relatorio_excel():
     ws.title = "Relatorio PELOG"
 
     ws.append([
-        "ID", "Placa", "Motorista", "CPF", "Empresa", "Material", "NF",
-        "Doca", "Status", "Entrada Portaria", "Autorizado Por",
+        "ID", "Placa", "Motorista", "CPF", "Empresa", "Material", "Nota Fiscal/DTS",
+        "Setor", "Doca", "Status", "Entrada Portaria", "Autorizado Por",
         "Horário Autorização", "Início Doca", "Fim Doca",
         "DTS Observação", "Produtos SKU", "Notas", "Diferença OS",
         "Quantidade NFS", "Paletes NF", "Paletes Conferido",
@@ -514,6 +611,7 @@ def relatorio_excel():
             c.get("empresa"),
             c.get("tipo_material"),
             c.get("nota_fiscal"),
+            c.get("setor_doca"),
             c.get("doca"),
             c.get("status"),
             c.get("horario"),
@@ -564,10 +662,10 @@ def dados_tv():
             empresa,
             tipo_material,
             nota_fiscal,
+            setor_doca,
             doca,
             status,
-            inicio_doca,
-            EXTRACT(EPOCH FROM (NOW() - inicio_doca)) / 60 AS tempo
+            inicio_doca
         FROM caminhoes
         WHERE status = 'na_doca'
           AND inicio_doca IS NOT NULL
@@ -580,8 +678,14 @@ def dados_tv():
     conn.close()
 
     dados = []
+    agora = agora_brasil()
 
     for c in caminhoes:
+        tempo = 0
+
+        if c.get("inicio_doca"):
+            tempo = int((agora - c.get("inicio_doca")).total_seconds() / 60)
+
         dados.append({
             "id": c.get("id"),
             "placa": c.get("placa"),
@@ -589,9 +693,10 @@ def dados_tv():
             "empresa": c.get("empresa"),
             "tipo_material": c.get("tipo_material"),
             "nota_fiscal": c.get("nota_fiscal"),
+            "setor_doca": c.get("setor_doca"),
             "doca": c.get("doca") or "SEM DOCA",
             "status": c.get("status"),
-            "tempo": int(c.get("tempo")) if c.get("tempo") else 0
+            "tempo": tempo
         })
 
     return jsonify(dados)

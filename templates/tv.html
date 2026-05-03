@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+    <meta charset="UTF-8">
     <title>Monitoramento de Docas - PELOG</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -54,6 +55,12 @@
             margin-top: 8px;
         }
 
+        .setor {
+            font-size: 18px;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+
         .tempo {
             font-size: 34px;
             font-weight: bold;
@@ -90,6 +97,22 @@
             text-align: center;
             padding: 20px;
         }
+
+        .badge-cross {
+            background: #198754;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .badge-cd {
+            background: #0d6efd;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
     </style>
 </head>
 
@@ -118,6 +141,18 @@ function classeTempo(tempo) {
     return 'tempo-ok';
 }
 
+function nomeSetor(setor) {
+    if (setor === "CROSS") {
+        return '<span class="badge-cross">Doca CROSS</span>';
+    }
+
+    if (setor === "CD") {
+        return '<span class="badge-cd">Doca CD</span>';
+    }
+
+    return '<span>-</span>';
+}
+
 function carregarDados() {
     fetch('/dados_tv')
     .then(res => res.json())
@@ -142,7 +177,7 @@ function carregarDados() {
             html += `
                 <div class="secao-doca">
                     <div class="titulo-doca">
-                        📍 DOCA ${doca}
+                        📍 ${doca}
                     </div>
 
                     <div class="row">
@@ -156,9 +191,10 @@ function carregarDados() {
                 html += `
                     <div class="col-md-3">
                         <div class="card-tv">
-                            <div class="placa">🚛 ${c.placa}</div>
-                            <div class="motorista">👤 ${c.motorista}</div>
+                            <div class="placa">🚛 ${c.placa || '-'}</div>
+                            <div class="motorista">👤 ${c.motorista || '-'}</div>
                             <div class="motorista">🏢 ${c.empresa || '-'}</div>
+                            <div class="setor">${nomeSetor(c.setor_doca)}</div>
 
                             <div class="tempo ${classe}">
                                 ⏱ ${tempo} min

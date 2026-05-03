@@ -66,7 +66,7 @@
                     type="text" 
                     name="busca" 
                     class="form-control" 
-                    placeholder="Buscar por Placa, Motorista, CPF, Empresa, Material, NF ou Doca"
+                    placeholder="Buscar por Placa, Motorista, CPF, Empresa, Material, Nota Fiscal/DTS, Setor ou Doca"
                     value="{{ busca or '' }}">
             </div>
 
@@ -109,8 +109,9 @@
                     <th>CPF</th>
                     <th>Transportadora</th>
                     <th>Fornecedor/Material</th>
-                    <th>Nota Fiscal</th>
-                    <th>Doca</th>
+                    <th>Nota Fiscal/DTS</th>
+                    <th>Setor</th>
+                    <th>Doca Exata</th>
                     <th>Entrada Portaria</th>
                     <th>Autorização</th>
 
@@ -146,6 +147,17 @@
                     <td>{{ registro.empresa }}</td>
                     <td>{{ registro.tipo_material }}</td>
                     <td>{{ registro.nota_fiscal }}</td>
+
+                    <td>
+                        {% if registro.setor_doca == 'CROSS' %}
+                            <span class="badge bg-success">Doca CROSS</span>
+                        {% elif registro.setor_doca == 'CD' %}
+                            <span class="badge bg-primary">Doca CD</span>
+                        {% else %}
+                            <span class="badge bg-secondary">-</span>
+                        {% endif %}
+                    </td>
+
                     <td>{{ registro.doca or '-' }}</td>
 
                     <td>

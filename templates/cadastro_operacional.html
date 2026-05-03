@@ -61,8 +61,17 @@
             <strong>CPF:</strong> {{ caminhao.cpf }} |
             <strong>Transportadora:</strong> {{ caminhao.empresa }} |
             <strong>Fornecedor/Material:</strong> {{ caminhao.tipo_material }} |
-            <strong>Nota Fiscal:</strong> {{ caminhao.nota_fiscal }} |
-            <strong>Doca:</strong> {{ caminhao.doca or '-' }}
+            <strong>Nota Fiscal/DTS:</strong> {{ caminhao.nota_fiscal }} |
+            <strong>Setor:</strong> 
+            {% if caminhao.setor_doca == 'CROSS' %}
+                Doca CROSS
+            {% elif caminhao.setor_doca == 'CD' %}
+                Doca CD
+            {% else %}
+                -
+            {% endif %}
+            |
+            <strong>Doca Exata:</strong> {{ caminhao.doca or '-' }}
         </p>
     </div>
 
