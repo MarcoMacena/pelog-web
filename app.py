@@ -81,6 +81,7 @@ def criar_colunas():
         "ADD COLUMN IF NOT EXISTS qtd_paletes_conferido INTEGER",
         "ADD COLUMN IF NOT EXISTS peso_kg NUMERIC(10,2)",
         "ADD COLUMN IF NOT EXISTS diferenca_produtos TEXT",
+        "ADD COLUMN IF NOT EXISTS equipe TEXT",
         "ADD COLUMN IF NOT EXISTS operacional_cadastrado_por VARCHAR(100)",
         "ADD COLUMN IF NOT EXISTS horario_operacional TIMESTAMP"
     ]
@@ -124,7 +125,6 @@ def login():
         if usuario in USUARIOS and USUARIOS[usuario]["senha"] == senha:
             session["usuario"] = usuario
             session["tipo"] = USUARIOS[usuario]["tipo"]
-
             return redirect(url_for("index"))
 
         return render_template("login.html", erro="Usuário ou senha inválidos")
@@ -393,6 +393,7 @@ def cadastro_operacional(id):
                 qtd_paletes_conferido = %s,
                 peso_kg = %s,
                 diferenca_produtos = %s,
+                equipe = %s,
                 operacional_cadastrado_por = %s,
                 horario_operacional = %s
             WHERE id = %s
@@ -407,6 +408,7 @@ def cadastro_operacional(id):
             request.form.get("qtd_paletes_conferido") or None,
             request.form.get("peso_kg") or None,
             request.form.get("diferenca_produtos"),
+            request.form.get("equipe"),
             usuario,
             agora_brasil(),
             id,
@@ -473,11 +475,12 @@ def admin():
                 tipo_material ILIKE %s OR
                 nota_fiscal ILIKE %s OR
                 setor_doca ILIKE %s OR
-                doca ILIKE %s
+                doca ILIKE %s OR
+                equipe ILIKE %s
             )
         """
         termo = f"%{busca}%"
-        params.extend([termo, termo, termo, termo, termo, termo, termo, termo])
+        params.extend([termo, termo, termo, termo, termo, termo, termo, termo, termo])
 
     if data_inicio:
         query += " AND horario::date >= %s"
@@ -536,11 +539,12 @@ def registros_encarregado():
                 tipo_material ILIKE %s OR
                 nota_fiscal ILIKE %s OR
                 setor_doca ILIKE %s OR
-                doca ILIKE %s
+                doca ILIKE %s OR
+                equipe ILIKE %s
             )
         """
         termo = f"%{busca}%"
-        params.extend([termo, termo, termo, termo, termo, termo, termo, termo])
+        params.extend([termo, termo, termo, termo, termo, termo, termo, termo, termo])
 
     if data_inicio:
         query += " AND horario_operacional::date >= %s"
@@ -598,7 +602,7 @@ def relatorio_excel():
         "Horário Autorização", "Início Doca", "Fim Doca",
         "DTS Observação", "Produtos SKU", "Notas", "Diferença OS",
         "Quantidade NFS", "Paletes NF", "Paletes Conferido",
-        "Peso KG", "Diferença Produtos", "Operacional Por",
+        "Peso KG", "Diferença Produtos", "Equipe", "Operacional Por",
         "Horário Operacional"
     ])
 
@@ -628,6 +632,7 @@ def relatorio_excel():
             c.get("qtd_paletes_conferido"),
             c.get("peso_kg"),
             c.get("diferenca_produtos"),
+            c.get("equipe"),
             c.get("operacional_cadastrado_por"),
             c.get("horario_operacional"),
         ])
@@ -710,3 +715,6 @@ def api_tv():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
+
+    

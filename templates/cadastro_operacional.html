@@ -27,6 +27,13 @@
         textarea {
             resize: vertical;
         }
+
+        .campo-equipe {
+            border-radius: 12px;
+            min-height: 135px;
+            font-weight: 500;
+            line-height: 1.8;
+        }
     </style>
 </head>
 
@@ -85,6 +92,17 @@
                 <div class="col-md-12 mb-3">
                     <label>DTS Observação</label>
                     <textarea name="dts_observacao" class="form-control" rows="4" required>{{ registro.dts_observacao or '' }}</textarea>
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label class="fw-bold">EQUIPE</label>
+                    <textarea 
+                        name="equipe" 
+                        class="form-control campo-equipe" 
+                        rows="4"
+                        placeholder="MARCO AURÉLIO&#10;LUCAS VIEIRA&#10;JOSÉ AILTON&#10;JORGE LUIZ"
+                    >{{ registro.equipe or '' }}</textarea>
+                    <small class="text-muted">Digite um nome por linha.</small>
                 </div>
 
                 <div class="col-md-4 mb-3">
