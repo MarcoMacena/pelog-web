@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Programação Cross - Admin</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1f2e3a;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            width: 120px;
+        }
+
+        .table thead {
+            background: #1f2e3a;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container-fluid px-4">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+
+            <div>
+                <h2 class="text-white">Programação Cross</h2>
+                <span class="badge bg-success fs-6">
+                    Área exclusiva do Admin
+                </span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+
+            <a href="/admin" class="btn btn-light">
+                Voltar
+            </a>
+
+            <a href="/exportar_programacao_cross" class="btn btn-success">
+                Exportar Excel
+            </a>
+
+            <a href="/logout" class="btn btn-danger">
+                Sair
+            </a>
+
+        </div>
+
+    </div>
+
+    {% if mensagem %}
+        <div class="alert alert-success mt-4">
+            {{ mensagem }}
+        </div>
+    {% endif %}
+
+    {% if erro %}
+        <div class="alert alert-danger mt-4">
+            {{ erro }}
+        </div>
+    {% endif %}
+
+    <div class="box">
+
+        <h4>Importar Planilha Excel</h4>
+
+        <form method="POST" enctype="multipart/form-data" class="row g-3 mt-2">
+
+            <div class="col-md-8">
+                <input 
+                    type="file"
+                    name="arquivo_excel"
+                    class="form-control"
+                    accept=".xlsx"
+                    required>
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">
+                    Importar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="box">
+
+        <form method="GET" class="row g-2">
+
+            <div class="col-md-5">
+                <input 
+                    type="text"
+                    name="busca"
+                    class="form-control"
+                    placeholder="Buscar por Cliente, Transportadora, Material, NF, Placa ou Motorista"
+                    value="{{ busca or '' }}">
+            </div>
+
+            <div class="col-md-2">
+                <input 
+                    type="date"
+                    name="data_inicio"
+                    class="form-control"
+                    value="{{ data_inicio or '' }}">
+            </div>
+
+            <div class="col-md-2">
+                <input 
+                    type="date"
+                    name="data_fim"
+                    class="form-control"
+                    value="{{ data_fim or '' }}">
+            </div>
+
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100">
+                    Buscar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="box">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <h4>Programações Importadas</h4>
+
+            <form method="POST" action="/admin/programacao-cross/limpar"
+                  onsubmit="return confirm('Deseja apagar toda a programação CROSS?');">
+
+                <button class="btn btn-danger">
+                    Limpar Tudo
+                </button>
+
+            </form>
+
+        </div>
+
+        <div class="table-responsive mt-3">
+
+            <table class="table table-bordered table-striped align-middle">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente/Fornecedor</th>
+                        <th>Transportadora</th>
+                        <th>Material</th>
+                        <th>Data Agenda</th>
+                        <th>NF</th>
+                        <th>Placa</th>
+                        <th>Motorista</th>
+                        <th>Peso</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for p in programacoes %}
+                    <tr>
+
+                        <td>{{ p.id }}</td>
+
+                        <td>
+                            {{ p.nome_cliente_fornecedor or '-' }}
+                        </td>
+
+                        <td>
+                            {{ p.nome_transportadora or '-' }}
+                        </td>
+
+                        <td>
+                            {{ p.material or '-' }}
+                        </td>
+
+                        <td>
+                            {% if p.data_agenda_entrega %}
+                                {{ p.data_agenda_entrega.strftime("%d/%m/%Y") }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ p.numero_nfe or '-' }}
+                        </td>
+
+                        <td>
+                            {{ p.placa_composicao or p.placa_simples_veiculo or '-' }}
+                        </td>
+
+                        <td>
+                            {{ p.nome_motorista or '-' }}
+                        </td>
+
+                        <td>
+                            {{ p.peso_liquido or '-' }}
+                        </td>
+
+                        <td style="min-width:180px;">
+
+                            <div class="d-flex gap-2">
+
+                                <a href="/admin/programacao-cross/editar/{{ p.id }}"
+                                   class="btn btn-warning btn-sm">
+                                    Editar
+                                </a>
+
+                                <form method="POST"
+                                      action="/admin/programacao-cross/excluir/{{ p.id }}"
+                                      onsubmit="return confirm('Deseja excluir este registro?');">
+
+                                    <button class="btn btn-danger btn-sm">
+                                        Excluir
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% if programacoes|length == 0 %}
+            <div class="alert alert-warning mt-3">
+                Nenhuma programação importada.
+            </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+</html>

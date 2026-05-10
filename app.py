@@ -2,9 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from io import BytesIO
 
 app = Flask(__name__)
@@ -36,6 +36,8 @@ USUARIOS = {
     "elaine_cross": {"senha": "123", "tipo": "encarregado"},
 }
 
+ENCARREGADOS_CROSS = ["jalison_cross", "elaine_cross"]
+
 
 def setor_do_usuario(usuario):
     if usuario in ["jalison_cross", "elaine_cross"]:
@@ -45,6 +47,216 @@ def setor_do_usuario(usuario):
         return "CD"
 
     return None
+
+
+def is_admin():
+    return session.get("tipo") == "admin"
+
+
+def is_cross_autorizado():
+    return session.get("usuario") in ENCARREGADOS_CROSS
+
+
+def limpar_texto(valor):
+    if valor is None:
+        return None
+    return str(valor).strip()
+
+
+def converter_data(valor):
+    if valor in [None, ""]:
+        return None
+
+    if isinstance(valor, datetime):
+        return valor.date()
+
+    if isinstance(valor, date):
+        return valor
+
+    valor = str(valor).strip()
+
+    formatos = [
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+        "%d-%m-%Y",
+        "%d/%m/%y",
+        "%Y/%m/%d"
+    ]
+
+    for formato in formatos:
+        try:
+            return datetime.strptime(valor, formato).date()
+        except ValueError:
+            pass
+
+    return None
+
+
+def converter_numero(valor):
+    if valor in [None, ""]:
+        return None
+
+    if isinstance(valor, (int, float)):
+        return valor
+
+    valor = str(valor).strip()
+    valor = valor.replace(".", "").replace(",", ".")
+
+    try:
+        return float(valor)
+    except ValueError:
+        return None
+
+
+def normalizar_cabecalho(valor):
+    if valor is None:
+        return ""
+
+    texto = str(valor).strip().lower()
+
+    trocas = {
+        "á": "a", "à": "a", "ã": "a", "â": "a",
+        "é": "e", "ê": "e",
+        "í": "i",
+        "ó": "o", "ô": "o", "õ": "o",
+        "ú": "u",
+        "ç": "c",
+        "º": "",
+        "°": "",
+        ".": "",
+        "-": " ",
+        "/": " ",
+        "\\": " ",
+        "_": " "
+    }
+
+    for antigo, novo in trocas.items():
+        texto = texto.replace(antigo, novo)
+
+    texto = " ".join(texto.split())
+    return texto
+
+
+MAPA_COLUNAS_EXCEL = {
+    "centro": "centro",
+    "descricao veiculo": "descricao_veiculo",
+    "descrição veiculo": "descricao_veiculo",
+    "nome cliente fornecedor": "nome_cliente_fornecedor",
+    "local": "local",
+    "data remessa recebimento": "data_remessa_recebimento",
+    "nr remessa recebimento": "nr_remessa_recebimento",
+    "regiao": "regiao",
+    "região": "regiao",
+    "nome transportadora": "nome_transportadora",
+    "data carregar": "data_carregar",
+    "parceiro yd": "parceiro_yd",
+    "nome transp subsequente": "nome_transp_subsequente",
+    "denominacao parceiro yd": "denominacao_parceiro_yd",
+    "denominação parceiro yd": "denominacao_parceiro_yd",
+    "cod cliente recebedor fornecedor": "cod_cliente_recebedor_fornecedor",
+    "condicao expedicao": "condicao_expedicao",
+    "condição expedição": "condicao_expedicao",
+    "data agenda entrega": "data_agenda_entrega",
+    "material": "material",
+    "peso liquido": "peso_liquido",
+    "peso líquido": "peso_liquido",
+    "qtde remessa": "qtde_remessa",
+    "volume acumulado": "volume_acumulado",
+    "n transporte": "numero_transporte",
+    "nº transporte": "numero_transporte",
+    "numero transporte": "numero_transporte",
+    "data nfe": "data_nfe",
+    "nr nfe": "numero_nfe",
+    "nrº nfe": "numero_nfe",
+    "numero nfe": "numero_nfe",
+    "numero dt subsequente": "numero_dt_subsequente",
+    "n dt subsequente": "numero_dt_subsequente",
+    "inf agenda entrega": "info_agenda_entrega",
+    "info agenda entrega": "info_agenda_entrega",
+    "data hora agendamento": "data_hora_agendamento",
+    "data hora reagendamento": "data_hora_reagendamento",
+    "numero pedido": "numero_pedido",
+    "n pedido": "numero_pedido",
+    "chave acesso": "chave_acesso",
+    "documento vendas compras": "documento_vendas_compras",
+    "data pedido": "data_pedido",
+    "data transporte": "data_transporte",
+    "caracteristica veiculo": "caracteristica_veiculo",
+    "característica veiculo": "caracteristica_veiculo",
+    "qtd teorica paletizacao convertida": "qtd_teorica_paletizacao_convertida",
+    "qtd teórica paletização convertida": "qtd_teorica_paletizacao_convertida",
+    "cliente pallet": "cliente_pallet",
+    "placa composicao": "placa_composicao",
+    "placa composição": "placa_composicao",
+    "placa simples veiculo": "placa_simples_veiculo",
+    "placa simples veículo": "placa_simples_veiculo",
+    "nome motorista": "nome_motorista",
+    "chaves": "chaves",
+    "altura": "altura",
+    "largura": "largura",
+}
+
+
+COLUNAS_PROGRAMACAO_CROSS = [
+    "centro",
+    "descricao_veiculo",
+    "nome_cliente_fornecedor",
+    "local",
+    "data_remessa_recebimento",
+    "nr_remessa_recebimento",
+    "regiao",
+    "nome_transportadora",
+    "data_carregar",
+    "parceiro_yd",
+    "nome_transp_subsequente",
+    "denominacao_parceiro_yd",
+    "cod_cliente_recebedor_fornecedor",
+    "condicao_expedicao",
+    "data_agenda_entrega",
+    "material",
+    "peso_liquido",
+    "qtde_remessa",
+    "volume_acumulado",
+    "numero_transporte",
+    "data_nfe",
+    "numero_nfe",
+    "numero_dt_subsequente",
+    "info_agenda_entrega",
+    "data_hora_agendamento",
+    "data_hora_reagendamento",
+    "numero_pedido",
+    "chave_acesso",
+    "documento_vendas_compras",
+    "data_pedido",
+    "data_transporte",
+    "caracteristica_veiculo",
+    "qtd_teorica_paletizacao_convertida",
+    "cliente_pallet",
+    "placa_composicao",
+    "placa_simples_veiculo",
+    "nome_motorista",
+    "chaves",
+    "altura",
+    "largura",
+]
+
+
+COLUNAS_DATA_CROSS = [
+    "data_remessa_recebimento",
+    "data_carregar",
+    "data_agenda_entrega",
+    "data_nfe",
+    "data_pedido",
+    "data_transporte",
+]
+
+
+COLUNAS_NUMERO_CROSS = [
+    "peso_liquido",
+    "qtde_remessa",
+    "volume_acumulado",
+    "qtd_teorica_paletizacao_convertida",
+]
 
 
 def criar_colunas():
@@ -88,6 +300,53 @@ def criar_colunas():
 
     for coluna in colunas:
         cur.execute(f"ALTER TABLE caminhoes {coluna};")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS programacao_cross (
+            id SERIAL PRIMARY KEY,
+            centro VARCHAR(50),
+            descricao_veiculo VARCHAR(150),
+            nome_cliente_fornecedor VARCHAR(200),
+            local VARCHAR(150),
+            data_remessa_recebimento DATE,
+            nr_remessa_recebimento VARCHAR(80),
+            regiao VARCHAR(50),
+            nome_transportadora VARCHAR(200),
+            data_carregar DATE,
+            parceiro_yd VARCHAR(100),
+            nome_transp_subsequente VARCHAR(200),
+            denominacao_parceiro_yd VARCHAR(200),
+            cod_cliente_recebedor_fornecedor VARCHAR(80),
+            condicao_expedicao VARCHAR(80),
+            data_agenda_entrega DATE,
+            material VARCHAR(100),
+            peso_liquido NUMERIC(12,3),
+            qtde_remessa NUMERIC(12,3),
+            volume_acumulado NUMERIC(12,3),
+            numero_transporte VARCHAR(80),
+            data_nfe DATE,
+            numero_nfe VARCHAR(80),
+            numero_dt_subsequente VARCHAR(80),
+            info_agenda_entrega TEXT,
+            data_hora_agendamento VARCHAR(100),
+            data_hora_reagendamento VARCHAR(100),
+            numero_pedido VARCHAR(80),
+            chave_acesso VARCHAR(80),
+            documento_vendas_compras VARCHAR(80),
+            data_pedido DATE,
+            data_transporte DATE,
+            caracteristica_veiculo VARCHAR(100),
+            qtd_teorica_paletizacao_convertida NUMERIC(12,3),
+            cliente_pallet VARCHAR(100),
+            placa_composicao VARCHAR(80),
+            placa_simples_veiculo VARCHAR(80),
+            nome_motorista VARCHAR(200),
+            chaves VARCHAR(150),
+            altura VARCHAR(50),
+            largura VARCHAR(50),
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
 
     conn.commit()
     cur.close()
@@ -272,7 +531,8 @@ def encarregado():
         caminhoes=caminhoes,
         usuario=usuario,
         perfil=session.get("tipo"),
-        setor=setor
+        setor=setor,
+        pode_ver_cross=is_cross_autorizado()
     )
 
 
@@ -509,6 +769,348 @@ def admin():
     )
 
 
+@app.route("/admin/programacao-cross", methods=["GET", "POST"])
+def admin_programacao_cross():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    mensagem = None
+    erro = None
+
+    if request.method == "POST":
+        arquivo = request.files.get("arquivo_excel")
+
+        if not arquivo or arquivo.filename == "":
+            erro = "Selecione uma planilha Excel para importar."
+        else:
+            try:
+                wb = load_workbook(arquivo, data_only=True)
+                ws = wb.active
+
+                cabecalhos = []
+                for celula in ws[1]:
+                    cabecalho_normalizado = normalizar_cabecalho(celula.value)
+                    cabecalhos.append(MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado))
+
+                registros_importados = 0
+
+                conn = conectar()
+                cur = conn.cursor()
+
+                for linha in ws.iter_rows(min_row=2, values_only=True):
+                    dados = {}
+
+                    for indice, valor in enumerate(linha):
+                        if indice < len(cabecalhos):
+                            coluna_banco = cabecalhos[indice]
+
+                            if coluna_banco:
+                                if coluna_banco in COLUNAS_DATA_CROSS:
+                                    dados[coluna_banco] = converter_data(valor)
+                                elif coluna_banco in COLUNAS_NUMERO_CROSS:
+                                    dados[coluna_banco] = converter_numero(valor)
+                                else:
+                                    dados[coluna_banco] = limpar_texto(valor)
+
+                    if not any(dados.values()):
+                        continue
+
+                    colunas = list(dados.keys())
+                    valores = [dados[coluna] for coluna in colunas]
+                    placeholders = ", ".join(["%s"] * len(colunas))
+
+                    sql = f"""
+                        INSERT INTO programacao_cross
+                        ({", ".join(colunas)})
+                        VALUES ({placeholders});
+                    """
+
+                    cur.execute(sql, valores)
+                    registros_importados += 1
+
+                conn.commit()
+                cur.close()
+                conn.close()
+
+                mensagem = f"Planilha importada com sucesso. {registros_importados} registros adicionados."
+
+            except Exception as e:
+                erro = f"Erro ao importar planilha: {str(e)}"
+
+    busca = request.args.get("busca", "")
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    query = """
+        SELECT *
+        FROM programacao_cross
+        WHERE 1=1
+    """
+
+    params = []
+
+    if busca:
+        query += """
+            AND (
+                nome_cliente_fornecedor ILIKE %s OR
+                local ILIKE %s OR
+                nome_transportadora ILIKE %s OR
+                material ILIKE %s OR
+                numero_nfe ILIKE %s OR
+                numero_transporte ILIKE %s OR
+                placa_composicao ILIKE %s OR
+                placa_simples_veiculo ILIKE %s OR
+                nome_motorista ILIKE %s
+            )
+        """
+        termo = f"%{busca}%"
+        params.extend([termo] * 9)
+
+    if data_inicio:
+        query += " AND data_agenda_entrega >= %s"
+        params.append(data_inicio)
+
+    if data_fim:
+        query += " AND data_agenda_entrega <= %s"
+        params.append(data_fim)
+
+    query += " ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;"
+
+    cur.execute(query, params)
+    programacoes = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "admin_programacao_cross.html",
+        programacoes=programacoes,
+        busca=busca,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        mensagem=mensagem,
+        erro=erro,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/admin/programacao-cross/editar/<int:id>", methods=["GET", "POST"])
+def editar_programacao_cross(id):
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        valores = []
+
+        for coluna in COLUNAS_PROGRAMACAO_CROSS:
+            valor = request.form.get(coluna)
+
+            if coluna in COLUNAS_DATA_CROSS:
+                valor = converter_data(valor)
+            elif coluna in COLUNAS_NUMERO_CROSS:
+                valor = converter_numero(valor)
+            else:
+                valor = limpar_texto(valor)
+
+            valores.append(valor)
+
+        valores.append(id)
+
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO_CROSS])
+
+        cur.execute(f"""
+            UPDATE programacao_cross
+            SET {set_sql}
+            WHERE id = %s;
+        """, valores)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return redirect(url_for("admin_programacao_cross"))
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_cross
+        WHERE id = %s;
+    """, (id,))
+
+    registro = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not registro:
+        return redirect(url_for("admin_programacao_cross"))
+
+    return render_template(
+        "editar_programacao_cross.html",
+        registro=registro,
+        colunas=COLUNAS_PROGRAMACAO_CROSS,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/admin/programacao-cross/excluir/<int:id>", methods=["POST"])
+def excluir_programacao_cross(id):
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM programacao_cross
+        WHERE id = %s;
+    """, (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_programacao_cross"))
+
+
+@app.route("/admin/programacao-cross/limpar", methods=["POST"])
+def limpar_programacao_cross():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM programacao_cross;")
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_programacao_cross"))
+
+
+@app.route("/cross/programacao")
+def cross_programacao():
+    if session.get("tipo") != "encarregado" and session.get("tipo") != "admin":
+        return redirect(url_for("login"))
+
+    if not is_cross_autorizado() and not is_admin():
+        return redirect(url_for("encarregado"))
+
+    busca = request.args.get("busca", "")
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    query = """
+        SELECT *
+        FROM programacao_cross
+        WHERE 1=1
+    """
+
+    params = []
+
+    if busca:
+        query += """
+            AND (
+                nome_cliente_fornecedor ILIKE %s OR
+                local ILIKE %s OR
+                nome_transportadora ILIKE %s OR
+                material ILIKE %s OR
+                numero_nfe ILIKE %s OR
+                numero_transporte ILIKE %s OR
+                placa_composicao ILIKE %s OR
+                placa_simples_veiculo ILIKE %s OR
+                nome_motorista ILIKE %s
+            )
+        """
+        termo = f"%{busca}%"
+        params.extend([termo] * 9)
+
+    if data_inicio:
+        query += " AND data_agenda_entrega >= %s"
+        params.append(data_inicio)
+
+    if data_fim:
+        query += " AND data_agenda_entrega <= %s"
+        params.append(data_fim)
+
+    query += " ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;"
+
+    cur.execute(query, params)
+    programacoes = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "cross_programacao.html",
+        programacoes=programacoes,
+        busca=busca,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/exportar_programacao_cross")
+def exportar_programacao_cross():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_cross
+        ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;
+    """)
+
+    dados = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Programacao Cross"
+
+    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO_CROSS + ["criado_em"]
+    ws.append(cabecalhos)
+
+    for item in dados:
+        linha = [item.get("id")]
+
+        for coluna in COLUNAS_PROGRAMACAO_CROSS:
+            linha.append(item.get(coluna))
+
+        linha.append(item.get("criado_em"))
+        ws.append(linha)
+
+    arquivo = BytesIO()
+    wb.save(arquivo)
+    arquivo.seek(0)
+
+    return send_file(
+        arquivo,
+        as_attachment=True,
+        download_name="programacao_cross.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
 @app.route("/registros_encarregado")
 def registros_encarregado():
     if session.get("tipo") != "admin":
@@ -715,6 +1317,3 @@ def api_tv():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
-    

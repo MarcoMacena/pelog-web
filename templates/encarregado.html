@@ -12,8 +12,10 @@
 <div class="container-fluid px-4 mt-4">
 
     <div class="d-flex justify-content-between align-items-center">
+
         <div class="d-flex align-items-center gap-3">
             <img src="{{ url_for('static', filename='logo.png') }}" style="width:100px;">
+
             <div>
                 <h2 style="color:white;">Painel do Encarregado</h2>
 
@@ -25,23 +27,38 @@
             </div>
         </div>
 
-        <div>
-            <span class="text-white me-3">
+        <div class="d-flex align-items-center gap-2">
+
+            {% if pode_ver_cross %}
+                <a href="/cross/programacao" class="btn btn-warning">
+                    Programação Cross
+                </a>
+            {% endif %}
+
+            <span class="text-white me-2">
                 Usuário: {{ usuario }}
             </span>
-            <a href="/logout" class="btn btn-danger">Sair</a>
+
+            <a href="/logout" class="btn btn-danger">
+                Sair
+            </a>
+
         </div>
+
     </div>
 
     <div class="bg-white p-4 rounded mt-4 shadow">
 
         <h4>Caminhões recebidos da portaria</h4>
+
         <p class="text-muted">
             Escolha a doca exata apenas para os caminhões do seu setor.
         </p>
 
         <div class="table-responsive">
+
             <table class="table table-bordered table-hover mt-3 align-middle">
+
                 <thead class="table-dark">
                     <tr>
                         <th>Placa</th>
@@ -57,42 +74,67 @@
                 </thead>
 
                 <tbody>
+
                     {% for c in caminhoes %}
                     <tr>
-                        <td><strong>{{ c.placa }}</strong></td>
+
+                        <td>
+                            <strong>{{ c.placa }}</strong>
+                        </td>
+
                         <td>{{ c.motorista }}</td>
+
                         <td>{{ c.empresa }}</td>
+
                         <td>{{ c.tipo_material }}</td>
+
                         <td>{{ c.nota_fiscal }}</td>
 
                         <td>
                             {% if c.setor_doca == 'CROSS' %}
                                 <span class="badge bg-success">Doca CROSS</span>
+
                             {% elif c.setor_doca == 'CD' %}
                                 <span class="badge bg-primary">Doca CD</span>
+
                             {% else %}
                                 <span class="badge bg-secondary">-</span>
                             {% endif %}
                         </td>
 
                         <td>
+
                             {% if c.status == 'aguardando' or not c.status %}
-                                <span class="badge bg-warning text-dark">Aguardando</span>
+                                <span class="badge bg-warning text-dark">
+                                    Aguardando
+                                </span>
+
                             {% elif c.status == 'autorizado' %}
-                                <span class="badge bg-info text-dark">Autorizado</span>
+                                <span class="badge bg-info text-dark">
+                                    Autorizado
+                                </span>
+
                             {% elif c.status == 'na_doca' %}
-                                <span class="badge bg-success">Na Doca</span>
+                                <span class="badge bg-success">
+                                    Na Doca
+                                </span>
+
                             {% elif c.status == 'finalizado' %}
-                                <span class="badge bg-secondary">Finalizado</span>
+                                <span class="badge bg-secondary">
+                                    Finalizado
+                                </span>
                             {% endif %}
+
                         </td>
 
                         <td>
+
                             {% if c.doca %}
                                 <strong>{{ c.doca }}</strong>
                             {% else %}
                                 -
                             {% endif %}
+
                         </td>
 
                         <td style="min-width:360px;">
@@ -100,16 +142,25 @@
                             {% if c.status == 'aguardando' or not c.status %}
 
                                 <form method="POST" action="/autorizar/{{ c.id }}" class="d-flex gap-2 mb-2">
+
                                     <select name="doca" class="form-select" required>
-                                        <option value="">Escolher doca</option>
+
+                                        <option value="">
+                                            Escolher doca
+                                        </option>
+
                                         {% for n in range(1, 21) %}
                                             <option value="Doca {{ '%02d'|format(n) }}">
                                                 Doca {{ '%02d'|format(n) }}
                                             </option>
                                         {% endfor %}
+
                                     </select>
 
-                                    <button class="btn btn-primary">Autorizar</button>
+                                    <button class="btn btn-primary">
+                                        Autorizar
+                                    </button>
+
                                 </form>
 
                                 <a href="/cadastro_operacional/{{ c.id }}" class="btn btn-warning btn-sm">
@@ -119,35 +170,46 @@
                             {% elif c.status == 'autorizado' %}
 
                                 <div class="d-flex gap-2">
+
                                     <form method="POST" action="/iniciar_doca/{{ c.id }}">
-                                        <button class="btn btn-success btn-sm">Iniciar Doca</button>
+                                        <button class="btn btn-success btn-sm">
+                                            Iniciar Doca
+                                        </button>
                                     </form>
 
                                     <a href="/cadastro_operacional/{{ c.id }}" class="btn btn-warning btn-sm">
                                         Cadastrar Operacional
                                     </a>
+
                                 </div>
 
                             {% elif c.status == 'na_doca' %}
 
                                 <div class="d-flex gap-2">
+
                                     <form method="POST" action="/finalizar_doca/{{ c.id }}">
-                                        <button class="btn btn-danger btn-sm">Finalizar</button>
+                                        <button class="btn btn-danger btn-sm">
+                                            Finalizar
+                                        </button>
                                     </form>
 
                                     <a href="/cadastro_operacional/{{ c.id }}" class="btn btn-warning btn-sm">
                                         Cadastrar Operacional
                                     </a>
+
                                 </div>
 
                             {% endif %}
 
                         </td>
+
                     </tr>
                     {% endfor %}
+
                 </tbody>
 
             </table>
+
         </div>
 
         {% if caminhoes|length == 0 %}

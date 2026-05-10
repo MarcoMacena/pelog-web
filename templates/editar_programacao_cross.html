@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Programação Cross</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1f2e3a;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            width: 120px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container-fluid px-4">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+
+            <div>
+                <h2 class="text-white">Editar Programação Cross</h2>
+                <span class="badge bg-warning text-dark fs-6">
+                    Apenas Admin
+                </span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="/admin/programacao-cross" class="btn btn-light">
+                Voltar
+            </a>
+
+            <a href="/logout" class="btn btn-danger">
+                Sair
+            </a>
+        </div>
+
+    </div>
+
+    <div class="box">
+
+        <form method="POST" class="row g-3">
+
+            <div class="col-md-3">
+                <label class="form-label">Centro</label>
+                <input type="text" name="centro" class="form-control" value="{{ registro.centro or '' }}">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Descrição Veículo</label>
+                <input type="text" name="descricao_veiculo" class="form-control" value="{{ registro.descricao_veiculo or '' }}">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Nome Cliente/Fornecedor</label>
+                <input type="text" name="nome_cliente_fornecedor" class="form-control" value="{{ registro.nome_cliente_fornecedor or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Local</label>
+                <input type="text" name="local" class="form-control" value="{{ registro.local or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Data Remessa/Recebimento</label>
+                <input type="date" name="data_remessa_recebimento" class="form-control"
+                       value="{{ registro.data_remessa_recebimento.strftime('%Y-%m-%d') if registro.data_remessa_recebimento else '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Nr. Remessa/Recebimento</label>
+                <input type="text" name="nr_remessa_recebimento" class="form-control" value="{{ registro.nr_remessa_recebimento or '' }}">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Região</label>
+                <input type="text" name="regiao" class="form-control" value="{{ registro.regiao or '' }}">
+            </div>
+
+            <div class="col-md-5">
+                <label class="form-label">Nome Transportadora</label>
+                <input type="text" name="nome_transportadora" class="form-control" value="{{ registro.nome_transportadora or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Data Carregar</label>
+                <input type="date" name="data_carregar" class="form-control"
+                       value="{{ registro.data_carregar.strftime('%Y-%m-%d') if registro.data_carregar else '' }}">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Parceiro YD</label>
+                <input type="text" name="parceiro_yd" class="form-control" value="{{ registro.parceiro_yd or '' }}">
+            </div>
+
+            <div class="col-md-5">
+                <label class="form-label">Nome Transp. Subsequente</label>
+                <input type="text" name="nome_transp_subsequente" class="form-control" value="{{ registro.nome_transp_subsequente or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Denominação Parceiro YD</label>
+                <input type="text" name="denominacao_parceiro_yd" class="form-control" value="{{ registro.denominacao_parceiro_yd or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Cód. Cliente/Recebedor/Fornecedor</label>
+                <input type="text" name="cod_cliente_recebedor_fornecedor" class="form-control" value="{{ registro.cod_cliente_recebedor_fornecedor or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Condição Expedição</label>
+                <input type="text" name="condicao_expedicao" class="form-control" value="{{ registro.condicao_expedicao or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Data Agenda Entrega</label>
+                <input type="date" name="data_agenda_entrega" class="form-control"
+                       value="{{ registro.data_agenda_entrega.strftime('%Y-%m-%d') if registro.data_agenda_entrega else '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Material</label>
+                <input type="text" name="material" class="form-control" value="{{ registro.material or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Peso Líquido</label>
+                <input type="number" step="0.001" name="peso_liquido" class="form-control" value="{{ registro.peso_liquido or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Qtde Remessa</label>
+                <input type="number" step="0.001" name="qtde_remessa" class="form-control" value="{{ registro.qtde_remessa or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Volume Acumulado</label>
+                <input type="number" step="0.001" name="volume_acumulado" class="form-control" value="{{ registro.volume_acumulado or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Nº Transporte</label>
+                <input type="text" name="numero_transporte" class="form-control" value="{{ registro.numero_transporte or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Data NFe</label>
+                <input type="date" name="data_nfe" class="form-control"
+                       value="{{ registro.data_nfe.strftime('%Y-%m-%d') if registro.data_nfe else '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Nrº NFe</label>
+                <input type="text" name="numero_nfe" class="form-control" value="{{ registro.numero_nfe or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Número DT Subsequente</label>
+                <input type="text" name="numero_dt_subsequente" class="form-control" value="{{ registro.numero_dt_subsequente or '' }}">
+            </div>
+
+            <div class="col-md-8">
+                <label class="form-label">Inf. Agenda Entrega</label>
+                <input type="text" name="info_agenda_entrega" class="form-control" value="{{ registro.info_agenda_entrega or '' }}">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Data/Hora Agendamento</label>
+                <input type="text" name="data_hora_agendamento" class="form-control" value="{{ registro.data_hora_agendamento or '' }}">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Data/Hora Reagendamento</label>
+                <input type="text" name="data_hora_reagendamento" class="form-control" value="{{ registro.data_hora_reagendamento or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Número Pedido</label>
+                <input type="text" name="numero_pedido" class="form-control" value="{{ registro.numero_pedido or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Chave Acesso</label>
+                <input type="text" name="chave_acesso" class="form-control" value="{{ registro.chave_acesso or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Documento Vendas/Compras</label>
+                <input type="text" name="documento_vendas_compras" class="form-control" value="{{ registro.documento_vendas_compras or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Data Pedido</label>
+                <input type="date" name="data_pedido" class="form-control"
+                       value="{{ registro.data_pedido.strftime('%Y-%m-%d') if registro.data_pedido else '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Data Transporte</label>
+                <input type="date" name="data_transporte" class="form-control"
+                       value="{{ registro.data_transporte.strftime('%Y-%m-%d') if registro.data_transporte else '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Característica Veículo</label>
+                <input type="text" name="caracteristica_veiculo" class="form-control" value="{{ registro.caracteristica_veiculo or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Qtd Teórica Paletização Convertida</label>
+                <input type="number" step="0.001" name="qtd_teorica_paletizacao_convertida" class="form-control" value="{{ registro.qtd_teorica_paletizacao_convertida or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Cliente Pallet</label>
+                <input type="text" name="cliente_pallet" class="form-control" value="{{ registro.cliente_pallet or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Placa Composição</label>
+                <input type="text" name="placa_composicao" class="form-control" value="{{ registro.placa_composicao or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Placa Simples Veículo</label>
+                <input type="text" name="placa_simples_veiculo" class="form-control" value="{{ registro.placa_simples_veiculo or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Nome Motorista</label>
+                <input type="text" name="nome_motorista" class="form-control" value="{{ registro.nome_motorista or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Chaves</label>
+                <input type="text" name="chaves" class="form-control" value="{{ registro.chaves or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Altura</label>
+                <input type="text" name="altura" class="form-control" value="{{ registro.altura or '' }}">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Largura</label>
+                <input type="text" name="largura" class="form-control" value="{{ registro.largura or '' }}">
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2 mt-4">
+                <a href="/admin/programacao-cross" class="btn btn-secondary">
+                    Cancelar
+                </a>
+
+                <button class="btn btn-success">
+                    Salvar Alterações
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>
