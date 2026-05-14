@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Programação CD</title>
+    <title>Admin - Programação CROSS</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -36,7 +36,7 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
 
-            <h2>Admin - Programação CD</h2>
+            <h2>Admin - Programação CROSS</h2>
 
             <div>
 
@@ -44,7 +44,7 @@
                     Voltar
                 </a>
 
-                <a href="/exportar_programacao_cd" class="btn btn-success">
+                <a href="/exportar_programacao_cross" class="btn btn-success">
                     Exportar Excel
                 </a>
 
@@ -78,8 +78,8 @@
                 </div>
 
                 <div class="col-md-2">
-                    <button class="btn btn-primary w-100">
-                        Importar CD
+                    <button class="btn btn-warning w-100">
+                        Importar CROSS
                     </button>
                 </div>
 
@@ -123,18 +123,18 @@
         </form>
 
         <form method="POST"
-              action="/admin/programacao-cd/limpar"
-              onsubmit="return confirm('Deseja limpar toda a programação CD?');">
+              action="/admin/programacao-cross/limpar"
+              onsubmit="return confirm('Deseja limpar toda a programação CROSS?');">
 
             <button class="btn btn-danger mb-3">
-                Limpar Programação CD
+                Limpar Programação CROSS
             </button>
 
         </form>
 
         <div class="table-responsive">
 
-            <table class="table table-bordered table-striped">
+            <table class="table table-bordered table-striped align-middle">
 
                 <thead class="table-dark">
 
@@ -146,6 +146,8 @@
                         <th>NF</th>
                         <th>Material</th>
                         <th>Agenda</th>
+                        <th>Horário Chegada</th>
+                        <th>Usuário Chegada</th>
                         <th>Ações</th>
                     </tr>
 
@@ -175,9 +177,29 @@
 
                         <td>
 
+                            {% if item.horario_chegada %}
+
+                                {{ item.horario_chegada.strftime('%d/%m/%Y %H:%M') }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {{ item.usuario_chegada or '-' }}
+
+                        </td>
+
+                        <td>
+
                             <div class="d-flex gap-2">
 
-                                <a href="/admin/programacao-cd/editar/{{ item.id }}"
+                                <a href="/admin/programacao-cross/editar/{{ item.id }}"
                                    class="btn btn-warning btn-sm">
 
                                     Editar
@@ -185,7 +207,7 @@
                                 </a>
 
                                 <form method="POST"
-                                      action="/admin/programacao-cd/excluir/{{ item.id }}"
+                                      action="/admin/programacao-cross/excluir/{{ item.id }}"
                                       onsubmit="return confirm('Excluir este registro?');">
 
                                     <button class="btn btn-danger btn-sm">

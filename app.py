@@ -55,6 +55,10 @@ def is_cd_autorizado():
     return setor_do_usuario(session.get("usuario")) == "CD"
 
 
+def is_cross_autorizado():
+    return setor_do_usuario(session.get("usuario")) == "CROSS"
+
+
 def limpar_texto(valor):
     if valor is None:
         return None
@@ -195,7 +199,7 @@ MAPA_COLUNAS_EXCEL = {
 }
 
 
-COLUNAS_PROGRAMACAO_CD = [
+COLUNAS_PROGRAMACAO = [
     "centro",
     "descricao_veiculo",
     "nome_cliente_fornecedor",
@@ -239,7 +243,7 @@ COLUNAS_PROGRAMACAO_CD = [
 ]
 
 
-COLUNAS_DATA_CD = [
+COLUNAS_DATA = [
     "data_remessa_recebimento",
     "data_carregar",
     "data_agenda_entrega",
@@ -249,12 +253,66 @@ COLUNAS_DATA_CD = [
 ]
 
 
-COLUNAS_NUMERO_CD = [
+COLUNAS_NUMERO = [
     "peso_liquido",
     "qtde_remessa",
     "volume_acumulado",
     "qtd_teorica_paletizacao_convertida",
 ]
+
+
+def criar_tabela_programacao(cur, nome_tabela):
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {nome_tabela} (
+            id SERIAL PRIMARY KEY,
+            centro VARCHAR(50),
+            descricao_veiculo VARCHAR(150),
+            nome_cliente_fornecedor VARCHAR(200),
+            local VARCHAR(150),
+            data_remessa_recebimento DATE,
+            nr_remessa_recebimento VARCHAR(80),
+            regiao VARCHAR(50),
+            nome_transportadora VARCHAR(200),
+            data_carregar DATE,
+            parceiro_yd VARCHAR(100),
+            nome_transp_subsequente VARCHAR(200),
+            denominacao_parceiro_yd VARCHAR(200),
+            cod_cliente_recebedor_fornecedor VARCHAR(80),
+            condicao_expedicao VARCHAR(80),
+            data_agenda_entrega DATE,
+            material VARCHAR(100),
+            peso_liquido NUMERIC(12,3),
+            qtde_remessa NUMERIC(12,3),
+            volume_acumulado NUMERIC(12,3),
+            numero_transporte VARCHAR(80),
+            data_nfe DATE,
+            numero_nfe VARCHAR(80),
+            numero_dt_subsequente VARCHAR(80),
+            info_agenda_entrega TEXT,
+            data_hora_agendamento VARCHAR(100),
+            data_hora_reagendamento VARCHAR(100),
+            numero_pedido VARCHAR(80),
+            chave_acesso VARCHAR(80),
+            documento_vendas_compras VARCHAR(80),
+            data_pedido DATE,
+            data_transporte DATE,
+            caracteristica_veiculo VARCHAR(100),
+            qtd_teorica_paletizacao_convertida NUMERIC(12,3),
+            cliente_pallet VARCHAR(100),
+            placa_composicao VARCHAR(80),
+            placa_simples_veiculo VARCHAR(80),
+            nome_motorista VARCHAR(200),
+            chaves VARCHAR(150),
+            altura VARCHAR(50),
+            largura VARCHAR(50),
+            horario_chegada TIMESTAMP,
+            usuario_chegada VARCHAR(100),
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS horario_chegada TIMESTAMP;")
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS usuario_chegada VARCHAR(100);")
 
 
 def criar_colunas():
@@ -299,53 +357,8 @@ def criar_colunas():
     for coluna in colunas:
         cur.execute(f"ALTER TABLE caminhoes {coluna};")
 
-    # Mantive o nome da tabela como programacao_cross para não precisar alterar o banco agora.
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS programacao_cross (
-            id SERIAL PRIMARY KEY,
-            centro VARCHAR(50),
-            descricao_veiculo VARCHAR(150),
-            nome_cliente_fornecedor VARCHAR(200),
-            local VARCHAR(150),
-            data_remessa_recebimento DATE,
-            nr_remessa_recebimento VARCHAR(80),
-            regiao VARCHAR(50),
-            nome_transportadora VARCHAR(200),
-            data_carregar DATE,
-            parceiro_yd VARCHAR(100),
-            nome_transp_subsequente VARCHAR(200),
-            denominacao_parceiro_yd VARCHAR(200),
-            cod_cliente_recebedor_fornecedor VARCHAR(80),
-            condicao_expedicao VARCHAR(80),
-            data_agenda_entrega DATE,
-            material VARCHAR(100),
-            peso_liquido NUMERIC(12,3),
-            qtde_remessa NUMERIC(12,3),
-            volume_acumulado NUMERIC(12,3),
-            numero_transporte VARCHAR(80),
-            data_nfe DATE,
-            numero_nfe VARCHAR(80),
-            numero_dt_subsequente VARCHAR(80),
-            info_agenda_entrega TEXT,
-            data_hora_agendamento VARCHAR(100),
-            data_hora_reagendamento VARCHAR(100),
-            numero_pedido VARCHAR(80),
-            chave_acesso VARCHAR(80),
-            documento_vendas_compras VARCHAR(80),
-            data_pedido DATE,
-            data_transporte DATE,
-            caracteristica_veiculo VARCHAR(100),
-            qtd_teorica_paletizacao_convertida NUMERIC(12,3),
-            cliente_pallet VARCHAR(100),
-            placa_composicao VARCHAR(80),
-            placa_simples_veiculo VARCHAR(80),
-            nome_motorista VARCHAR(200),
-            chaves VARCHAR(150),
-            altura VARCHAR(50),
-            largura VARCHAR(50),
-            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
+    criar_tabela_programacao(cur, "programacao_cd")
+    criar_tabela_programacao(cur, "programacao_cross")
 
     conn.commit()
     cur.close()
@@ -355,6 +368,107 @@ def criar_colunas():
 @app.before_request
 def iniciar():
     criar_colunas()
+
+
+def importar_planilha_programacao(arquivo, tabela):
+    wb = load_workbook(arquivo, data_only=True)
+    ws = wb.active
+
+    cabecalhos = []
+
+    for celula in ws[1]:
+        cabecalho_normalizado = normalizar_cabecalho(celula.value)
+        cabecalhos.append(MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado))
+
+    registros_importados = 0
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    for linha in ws.iter_rows(min_row=2, values_only=True):
+        dados = {}
+
+        for indice, valor in enumerate(linha):
+            if indice < len(cabecalhos):
+                coluna_banco = cabecalhos[indice]
+
+                if coluna_banco:
+                    if coluna_banco in COLUNAS_DATA:
+                        dados[coluna_banco] = converter_data(valor)
+                    elif coluna_banco in COLUNAS_NUMERO:
+                        dados[coluna_banco] = converter_numero(valor)
+                    else:
+                        dados[coluna_banco] = limpar_texto(valor)
+
+        if not any(dados.values()):
+            continue
+
+        colunas = list(dados.keys())
+        valores = [dados[coluna] for coluna in colunas]
+        placeholders = ", ".join(["%s"] * len(colunas))
+
+        sql = f"""
+            INSERT INTO {tabela}
+            ({", ".join(colunas)})
+            VALUES ({placeholders});
+        """
+
+        cur.execute(sql, valores)
+        registros_importados += 1
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return registros_importados
+
+
+def buscar_programacoes(tabela, busca="", data_inicio="", data_fim=""):
+    conn = conectar()
+    cur = conn.cursor()
+
+    query = f"""
+        SELECT *
+        FROM {tabela}
+        WHERE 1=1
+    """
+
+    params = []
+
+    if busca:
+        query += """
+            AND (
+                nome_cliente_fornecedor ILIKE %s OR
+                local ILIKE %s OR
+                nome_transportadora ILIKE %s OR
+                material ILIKE %s OR
+                numero_nfe ILIKE %s OR
+                numero_transporte ILIKE %s OR
+                placa_composicao ILIKE %s OR
+                placa_simples_veiculo ILIKE %s OR
+                nome_motorista ILIKE %s
+            )
+        """
+        termo = f"%{busca}%"
+        params.extend([termo] * 9)
+
+    if data_inicio:
+        query += " AND data_agenda_entrega >= %s"
+        params.append(data_inicio)
+
+    if data_fim:
+        query += " AND data_agenda_entrega <= %s"
+        params.append(data_fim)
+
+    query += " ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;"
+
+    cur.execute(query, params)
+    dados = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return dados
 
 
 @app.route("/")
@@ -434,15 +548,8 @@ def api_portaria():
 
     cur.execute("""
         SELECT 
-            id, 
-            placa, 
-            motorista, 
-            empresa, 
-            tipo_material, 
-            nota_fiscal,
-            setor_doca,
-            status, 
-            doca
+            id, placa, motorista, empresa, tipo_material, nota_fiscal,
+            setor_doca, status, doca
         FROM caminhoes
         WHERE status IS NULL OR status != 'finalizado'
         ORDER BY id DESC;
@@ -472,15 +579,8 @@ def registrar():
     cur.execute("""
         INSERT INTO caminhoes
         (
-            placa, 
-            motorista, 
-            cpf, 
-            empresa, 
-            tipo_material, 
-            nota_fiscal, 
-            setor_doca,
-            horario, 
-            status
+            placa, motorista, cpf, empresa, tipo_material,
+            nota_fiscal, setor_doca, horario, status
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'aguardando');
     """, (
@@ -531,7 +631,8 @@ def encarregado():
         usuario=usuario,
         perfil=session.get("tipo"),
         setor=setor,
-        pode_ver_cd=is_cd_autorizado()
+        pode_ver_cd=is_cd_autorizado(),
+        pode_ver_cross=is_cross_autorizado()
     )
 
 
@@ -574,8 +675,7 @@ def iniciar_doca(id):
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
 
-    usuario = session.get("usuario")
-    setor = setor_do_usuario(usuario)
+    setor = setor_do_usuario(session.get("usuario"))
 
     conn = conectar()
     cur = conn.cursor()
@@ -604,8 +704,7 @@ def finalizar_doca(id):
     if session.get("tipo") != "encarregado":
         return redirect(url_for("login"))
 
-    usuario = session.get("usuario")
-    setor = setor_do_usuario(usuario)
+    setor = setor_do_usuario(session.get("usuario"))
 
     conn = conectar()
     cur = conn.cursor()
@@ -781,109 +880,58 @@ def admin_programacao_cd():
             erro = "Selecione uma planilha Excel para importar."
         else:
             try:
-                wb = load_workbook(arquivo, data_only=True)
-                ws = wb.active
-
-                cabecalhos = []
-                for celula in ws[1]:
-                    cabecalho_normalizado = normalizar_cabecalho(celula.value)
-                    cabecalhos.append(MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado))
-
-                registros_importados = 0
-
-                conn = conectar()
-                cur = conn.cursor()
-
-                for linha in ws.iter_rows(min_row=2, values_only=True):
-                    dados = {}
-
-                    for indice, valor in enumerate(linha):
-                        if indice < len(cabecalhos):
-                            coluna_banco = cabecalhos[indice]
-
-                            if coluna_banco:
-                                if coluna_banco in COLUNAS_DATA_CD:
-                                    dados[coluna_banco] = converter_data(valor)
-                                elif coluna_banco in COLUNAS_NUMERO_CD:
-                                    dados[coluna_banco] = converter_numero(valor)
-                                else:
-                                    dados[coluna_banco] = limpar_texto(valor)
-
-                    if not any(dados.values()):
-                        continue
-
-                    colunas = list(dados.keys())
-                    valores = [dados[coluna] for coluna in colunas]
-                    placeholders = ", ".join(["%s"] * len(colunas))
-
-                    sql = f"""
-                        INSERT INTO programacao_cross
-                        ({", ".join(colunas)})
-                        VALUES ({placeholders});
-                    """
-
-                    cur.execute(sql, valores)
-                    registros_importados += 1
-
-                conn.commit()
-                cur.close()
-                conn.close()
-
-                mensagem = f"Planilha importada com sucesso. {registros_importados} registros adicionados."
-
+                registros = importar_planilha_programacao(arquivo, "programacao_cd")
+                mensagem = f"Planilha CD importada com sucesso. {registros} registros adicionados."
             except Exception as e:
-                erro = f"Erro ao importar planilha: {str(e)}"
+                erro = f"Erro ao importar planilha CD: {str(e)}"
 
     busca = request.args.get("busca", "")
     data_inicio = request.args.get("data_inicio", "")
     data_fim = request.args.get("data_fim", "")
 
-    conn = conectar()
-    cur = conn.cursor()
-
-    query = """
-        SELECT *
-        FROM programacao_cross
-        WHERE 1=1
-    """
-
-    params = []
-
-    if busca:
-        query += """
-            AND (
-                nome_cliente_fornecedor ILIKE %s OR
-                local ILIKE %s OR
-                nome_transportadora ILIKE %s OR
-                material ILIKE %s OR
-                numero_nfe ILIKE %s OR
-                numero_transporte ILIKE %s OR
-                placa_composicao ILIKE %s OR
-                placa_simples_veiculo ILIKE %s OR
-                nome_motorista ILIKE %s
-            )
-        """
-        termo = f"%{busca}%"
-        params.extend([termo] * 9)
-
-    if data_inicio:
-        query += " AND data_agenda_entrega >= %s"
-        params.append(data_inicio)
-
-    if data_fim:
-        query += " AND data_agenda_entrega <= %s"
-        params.append(data_fim)
-
-    query += " ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;"
-
-    cur.execute(query, params)
-    programacoes = cur.fetchall()
-
-    cur.close()
-    conn.close()
+    programacoes = buscar_programacoes("programacao_cd", busca, data_inicio, data_fim)
 
     return render_template(
         "admin_programacao_cd.html",
+        programacoes=programacoes,
+        busca=busca,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        mensagem=mensagem,
+        erro=erro,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/admin/programacao-cross", methods=["GET", "POST"])
+def admin_programacao_cross():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    mensagem = None
+    erro = None
+
+    if request.method == "POST":
+        arquivo = request.files.get("arquivo_excel")
+
+        if not arquivo or arquivo.filename == "":
+            erro = "Selecione uma planilha Excel para importar."
+        else:
+            try:
+                registros = importar_planilha_programacao(arquivo, "programacao_cross")
+                mensagem = f"Planilha CROSS importada com sucesso. {registros} registros adicionados."
+            except Exception as e:
+                erro = f"Erro ao importar planilha CROSS: {str(e)}"
+
+    busca = request.args.get("busca", "")
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+
+    programacoes = buscar_programacoes("programacao_cross", busca, data_inicio, data_fim)
+
+    return render_template(
+        "admin_programacao_cross.html",
         programacoes=programacoes,
         busca=busca,
         data_inicio=data_inicio,
@@ -906,12 +954,12 @@ def editar_programacao_cd(id):
     if request.method == "POST":
         valores = []
 
-        for coluna in COLUNAS_PROGRAMACAO_CD:
+        for coluna in COLUNAS_PROGRAMACAO:
             valor = request.form.get(coluna)
 
-            if coluna in COLUNAS_DATA_CD:
+            if coluna in COLUNAS_DATA:
                 valor = converter_data(valor)
-            elif coluna in COLUNAS_NUMERO_CD:
+            elif coluna in COLUNAS_NUMERO:
                 valor = converter_numero(valor)
             else:
                 valor = limpar_texto(valor)
@@ -920,10 +968,10 @@ def editar_programacao_cd(id):
 
         valores.append(id)
 
-        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO_CD])
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO])
 
         cur.execute(f"""
-            UPDATE programacao_cross
+            UPDATE programacao_cd
             SET {set_sql}
             WHERE id = %s;
         """, valores)
@@ -936,7 +984,7 @@ def editar_programacao_cd(id):
 
     cur.execute("""
         SELECT *
-        FROM programacao_cross
+        FROM programacao_cd
         WHERE id = %s;
     """, (id,))
 
@@ -951,11 +999,80 @@ def editar_programacao_cd(id):
     return render_template(
         "editar_programacao_cd.html",
         registro=registro,
-        colunas=COLUNAS_PROGRAMACAO_CD,
+        colunas=COLUNAS_PROGRAMACAO,
         usuario=session.get("usuario"),
         perfil=session.get("tipo")
     )
 
+@app.route("/admin/programacao-cross/editar/<int:id>", methods=["GET", "POST"])
+def editar_programacao_cross(id):
+
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+
+        valores = []
+
+        for coluna in COLUNAS_PROGRAMACAO:
+
+            valor = request.form.get(coluna)
+
+            if coluna in COLUNAS_DATA:
+                valor = converter_data(valor)
+
+            elif coluna in COLUNAS_NUMERO:
+                valor = converter_numero(valor)
+
+            else:
+                valor = limpar_texto(valor)
+
+            valores.append(valor)
+
+        valores.append(id)
+
+        set_sql = ", ".join([
+            f"{coluna} = %s"
+            for coluna in COLUNAS_PROGRAMACAO
+        ])
+
+        cur.execute(f"""
+            UPDATE programacao_cross
+            SET {set_sql}
+            WHERE id = %s;
+        """, valores)
+
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        return redirect(url_for("admin_programacao_cross"))
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_cross
+        WHERE id = %s;
+    """, (id,))
+
+    registro = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not registro:
+        return redirect(url_for("admin_programacao_cross"))
+
+    return render_template(
+        "editar_programacao_cross.html",
+        registro=registro,
+        colunas=COLUNAS_PROGRAMACAO,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
 
 @app.route("/admin/programacao-cd/excluir/<int:id>", methods=["POST"])
 def excluir_programacao_cd(id):
@@ -966,7 +1083,7 @@ def excluir_programacao_cd(id):
     cur = conn.cursor()
 
     cur.execute("""
-        DELETE FROM programacao_cross
+        DELETE FROM programacao_cd
         WHERE id = %s;
     """, (id,))
 
@@ -985,13 +1102,50 @@ def limpar_programacao_cd():
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM programacao_cross;")
+    cur.execute("DELETE FROM programacao_cd;")
 
     conn.commit()
     cur.close()
     conn.close()
 
     return redirect(url_for("admin_programacao_cd"))
+
+
+@app.route("/admin/programacao-cross/excluir/<int:id>", methods=["POST"])
+def excluir_programacao_cross(id):
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM programacao_cross
+        WHERE id = %s;
+    """, (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_programacao_cross"))
+
+
+@app.route("/admin/programacao-cross/limpar", methods=["POST"])
+def limpar_programacao_cross():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM programacao_cross;")
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_programacao_cross"))
 
 
 @app.route("/cd/programacao")
@@ -1006,49 +1160,7 @@ def cd_programacao():
     data_inicio = request.args.get("data_inicio", "")
     data_fim = request.args.get("data_fim", "")
 
-    conn = conectar()
-    cur = conn.cursor()
-
-    query = """
-        SELECT *
-        FROM programacao_cross
-        WHERE 1=1
-    """
-
-    params = []
-
-    if busca:
-        query += """
-            AND (
-                nome_cliente_fornecedor ILIKE %s OR
-                local ILIKE %s OR
-                nome_transportadora ILIKE %s OR
-                material ILIKE %s OR
-                numero_nfe ILIKE %s OR
-                numero_transporte ILIKE %s OR
-                placa_composicao ILIKE %s OR
-                placa_simples_veiculo ILIKE %s OR
-                nome_motorista ILIKE %s
-            )
-        """
-        termo = f"%{busca}%"
-        params.extend([termo] * 9)
-
-    if data_inicio:
-        query += " AND data_agenda_entrega >= %s"
-        params.append(data_inicio)
-
-    if data_fim:
-        query += " AND data_agenda_entrega <= %s"
-        params.append(data_fim)
-
-    query += " ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;"
-
-    cur.execute(query, params)
-    programacoes = cur.fetchall()
-
-    cur.close()
-    conn.close()
+    programacoes = buscar_programacoes("programacao_cd", busca, data_inicio, data_fim)
 
     return render_template(
         "cd_programacao.html",
@@ -1061,6 +1173,57 @@ def cd_programacao():
     )
 
 
+@app.route("/cross/programacao")
+def cross_programacao():
+    if session.get("tipo") != "encarregado" and session.get("tipo") != "admin":
+        return redirect(url_for("login"))
+
+    if not is_cross_autorizado() and not is_admin():
+        return redirect(url_for("encarregado"))
+
+    busca = request.args.get("busca", "")
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+
+    programacoes = buscar_programacoes("programacao_cross", busca, data_inicio, data_fim)
+
+    return render_template(
+        "cross_programacao.html",
+        programacoes=programacoes,
+        busca=busca,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/cross/registrar_chegada/<int:id>", methods=["POST"])
+def registrar_chegada_cross(id):
+    if not is_cross_autorizado():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE programacao_cross
+        SET horario_chegada = %s,
+            usuario_chegada = %s
+        WHERE id = %s;
+    """, (
+        agora_brasil(),
+        session.get("usuario"),
+        id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("cross_programacao"))
+
+
 @app.route("/exportar_programacao_cd")
 def exportar_programacao_cd():
     if not is_admin():
@@ -1071,7 +1234,7 @@ def exportar_programacao_cd():
 
     cur.execute("""
         SELECT *
-        FROM programacao_cross
+        FROM programacao_cd
         ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;
     """)
 
@@ -1084,13 +1247,13 @@ def exportar_programacao_cd():
     ws = wb.active
     ws.title = "Programacao CD"
 
-    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO_CD + ["criado_em"]
+    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO + ["criado_em"]
     ws.append(cabecalhos)
 
     for item in dados:
         linha = [item.get("id")]
 
-        for coluna in COLUNAS_PROGRAMACAO_CD:
+        for coluna in COLUNAS_PROGRAMACAO:
             linha.append(item.get(coluna))
 
         linha.append(item.get("criado_em"))
@@ -1110,7 +1273,52 @@ def exportar_programacao_cd():
 
 @app.route("/exportar_programacao_cross")
 def exportar_programacao_cross():
-    return redirect(url_for("exportar_programacao_cd"))
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_cross
+        ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;
+    """)
+
+    dados = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Programacao CROSS"
+
+    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO + ["horario_chegada", "usuario_chegada", "criado_em"]
+    ws.append(cabecalhos)
+
+    for item in dados:
+        linha = [item.get("id")]
+
+        for coluna in COLUNAS_PROGRAMACAO:
+            linha.append(item.get(coluna))
+
+        linha.append(item.get("horario_chegada"))
+        linha.append(item.get("usuario_chegada"))
+        linha.append(item.get("criado_em"))
+
+        ws.append(linha)
+
+    arquivo = BytesIO()
+    wb.save(arquivo)
+    arquivo.seek(0)
+
+    return send_file(
+        arquivo,
+        as_attachment=True,
+        download_name="programacao_cross.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 @app.route("/registros_encarregado")
