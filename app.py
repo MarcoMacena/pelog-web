@@ -36,8 +36,6 @@ USUARIOS = {
     "elaine_cross": {"senha": "123", "tipo": "encarregado"},
 }
 
-ENCARREGADOS_CROSS = ["jalison_cross", "elaine_cross"]
-
 
 def setor_do_usuario(usuario):
     if usuario in ["jalison_cross", "elaine_cross"]:
@@ -53,8 +51,8 @@ def is_admin():
     return session.get("tipo") == "admin"
 
 
-def is_cross_autorizado():
-    return session.get("usuario") in ENCARREGADOS_CROSS
+def is_cd_autorizado():
+    return setor_do_usuario(session.get("usuario")) == "CD"
 
 
 def limpar_texto(valor):
@@ -197,7 +195,7 @@ MAPA_COLUNAS_EXCEL = {
 }
 
 
-COLUNAS_PROGRAMACAO_CROSS = [
+COLUNAS_PROGRAMACAO_CD = [
     "centro",
     "descricao_veiculo",
     "nome_cliente_fornecedor",
@@ -241,7 +239,7 @@ COLUNAS_PROGRAMACAO_CROSS = [
 ]
 
 
-COLUNAS_DATA_CROSS = [
+COLUNAS_DATA_CD = [
     "data_remessa_recebimento",
     "data_carregar",
     "data_agenda_entrega",
@@ -251,7 +249,7 @@ COLUNAS_DATA_CROSS = [
 ]
 
 
-COLUNAS_NUMERO_CROSS = [
+COLUNAS_NUMERO_CD = [
     "peso_liquido",
     "qtde_remessa",
     "volume_acumulado",
@@ -301,6 +299,7 @@ def criar_colunas():
     for coluna in colunas:
         cur.execute(f"ALTER TABLE caminhoes {coluna};")
 
+    # Mantive o nome da tabela como programacao_cross para não precisar alterar o banco agora.
     cur.execute("""
         CREATE TABLE IF NOT EXISTS programacao_cross (
             id SERIAL PRIMARY KEY,
@@ -532,7 +531,7 @@ def encarregado():
         usuario=usuario,
         perfil=session.get("tipo"),
         setor=setor,
-        pode_ver_cross=is_cross_autorizado()
+        pode_ver_cd=is_cd_autorizado()
     )
 
 
@@ -647,7 +646,6 @@ def cadastro_operacional(id):
             SET dts_observacao = %s,
                 produtos_sku = %s,
                 notas = %s,
-                diferenca_os = %s,
                 quantidade_nfs = %s,
                 qtd_paletes_nf = %s,
                 qtd_paletes_conferido = %s,
@@ -662,7 +660,6 @@ def cadastro_operacional(id):
             request.form.get("dts_observacao"),
             request.form.get("produtos_sku"),
             request.form.get("notas"),
-            request.form.get("diferenca_os"),
             request.form.get("quantidade_nfs") or None,
             request.form.get("qtd_paletes_nf") or None,
             request.form.get("qtd_paletes_conferido") or None,
@@ -769,8 +766,8 @@ def admin():
     )
 
 
-@app.route("/admin/programacao-cross", methods=["GET", "POST"])
-def admin_programacao_cross():
+@app.route("/admin/programacao-cd", methods=["GET", "POST"])
+def admin_programacao_cd():
     if not is_admin():
         return redirect(url_for("login"))
 
@@ -805,9 +802,9 @@ def admin_programacao_cross():
                             coluna_banco = cabecalhos[indice]
 
                             if coluna_banco:
-                                if coluna_banco in COLUNAS_DATA_CROSS:
+                                if coluna_banco in COLUNAS_DATA_CD:
                                     dados[coluna_banco] = converter_data(valor)
-                                elif coluna_banco in COLUNAS_NUMERO_CROSS:
+                                elif coluna_banco in COLUNAS_NUMERO_CD:
                                     dados[coluna_banco] = converter_numero(valor)
                                 else:
                                     dados[coluna_banco] = limpar_texto(valor)
@@ -886,7 +883,7 @@ def admin_programacao_cross():
     conn.close()
 
     return render_template(
-        "admin_programacao_cross.html",
+        "admin_programacao_cd.html",
         programacoes=programacoes,
         busca=busca,
         data_inicio=data_inicio,
@@ -898,8 +895,8 @@ def admin_programacao_cross():
     )
 
 
-@app.route("/admin/programacao-cross/editar/<int:id>", methods=["GET", "POST"])
-def editar_programacao_cross(id):
+@app.route("/admin/programacao-cd/editar/<int:id>", methods=["GET", "POST"])
+def editar_programacao_cd(id):
     if not is_admin():
         return redirect(url_for("login"))
 
@@ -909,12 +906,12 @@ def editar_programacao_cross(id):
     if request.method == "POST":
         valores = []
 
-        for coluna in COLUNAS_PROGRAMACAO_CROSS:
+        for coluna in COLUNAS_PROGRAMACAO_CD:
             valor = request.form.get(coluna)
 
-            if coluna in COLUNAS_DATA_CROSS:
+            if coluna in COLUNAS_DATA_CD:
                 valor = converter_data(valor)
-            elif coluna in COLUNAS_NUMERO_CROSS:
+            elif coluna in COLUNAS_NUMERO_CD:
                 valor = converter_numero(valor)
             else:
                 valor = limpar_texto(valor)
@@ -923,7 +920,7 @@ def editar_programacao_cross(id):
 
         valores.append(id)
 
-        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO_CROSS])
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO_CD])
 
         cur.execute(f"""
             UPDATE programacao_cross
@@ -935,7 +932,7 @@ def editar_programacao_cross(id):
         cur.close()
         conn.close()
 
-        return redirect(url_for("admin_programacao_cross"))
+        return redirect(url_for("admin_programacao_cd"))
 
     cur.execute("""
         SELECT *
@@ -949,19 +946,19 @@ def editar_programacao_cross(id):
     conn.close()
 
     if not registro:
-        return redirect(url_for("admin_programacao_cross"))
+        return redirect(url_for("admin_programacao_cd"))
 
     return render_template(
-        "editar_programacao_cross.html",
+        "editar_programacao_cd.html",
         registro=registro,
-        colunas=COLUNAS_PROGRAMACAO_CROSS,
+        colunas=COLUNAS_PROGRAMACAO_CD,
         usuario=session.get("usuario"),
         perfil=session.get("tipo")
     )
 
 
-@app.route("/admin/programacao-cross/excluir/<int:id>", methods=["POST"])
-def excluir_programacao_cross(id):
+@app.route("/admin/programacao-cd/excluir/<int:id>", methods=["POST"])
+def excluir_programacao_cd(id):
     if not is_admin():
         return redirect(url_for("login"))
 
@@ -977,11 +974,11 @@ def excluir_programacao_cross(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("admin_programacao_cross"))
+    return redirect(url_for("admin_programacao_cd"))
 
 
-@app.route("/admin/programacao-cross/limpar", methods=["POST"])
-def limpar_programacao_cross():
+@app.route("/admin/programacao-cd/limpar", methods=["POST"])
+def limpar_programacao_cd():
     if not is_admin():
         return redirect(url_for("login"))
 
@@ -994,15 +991,15 @@ def limpar_programacao_cross():
     cur.close()
     conn.close()
 
-    return redirect(url_for("admin_programacao_cross"))
+    return redirect(url_for("admin_programacao_cd"))
 
 
-@app.route("/cross/programacao")
-def cross_programacao():
+@app.route("/cd/programacao")
+def cd_programacao():
     if session.get("tipo") != "encarregado" and session.get("tipo") != "admin":
         return redirect(url_for("login"))
 
-    if not is_cross_autorizado() and not is_admin():
+    if not is_cd_autorizado() and not is_admin():
         return redirect(url_for("encarregado"))
 
     busca = request.args.get("busca", "")
@@ -1054,7 +1051,7 @@ def cross_programacao():
     conn.close()
 
     return render_template(
-        "cross_programacao.html",
+        "cd_programacao.html",
         programacoes=programacoes,
         busca=busca,
         data_inicio=data_inicio,
@@ -1064,8 +1061,8 @@ def cross_programacao():
     )
 
 
-@app.route("/exportar_programacao_cross")
-def exportar_programacao_cross():
+@app.route("/exportar_programacao_cd")
+def exportar_programacao_cd():
     if not is_admin():
         return redirect(url_for("login"))
 
@@ -1085,15 +1082,15 @@ def exportar_programacao_cross():
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Programacao Cross"
+    ws.title = "Programacao CD"
 
-    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO_CROSS + ["criado_em"]
+    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO_CD + ["criado_em"]
     ws.append(cabecalhos)
 
     for item in dados:
         linha = [item.get("id")]
 
-        for coluna in COLUNAS_PROGRAMACAO_CROSS:
+        for coluna in COLUNAS_PROGRAMACAO_CD:
             linha.append(item.get(coluna))
 
         linha.append(item.get("criado_em"))
@@ -1106,9 +1103,14 @@ def exportar_programacao_cross():
     return send_file(
         arquivo,
         as_attachment=True,
-        download_name="programacao_cross.xlsx",
+        download_name="programacao_cd.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+@app.route("/exportar_programacao_cross")
+def exportar_programacao_cross():
+    return redirect(url_for("exportar_programacao_cd"))
 
 
 @app.route("/registros_encarregado")
@@ -1202,7 +1204,7 @@ def relatorio_excel():
         "ID", "Placa", "Motorista", "CPF", "Empresa", "Material", "Nota Fiscal/DTS",
         "Setor", "Doca", "Status", "Entrada Portaria", "Autorizado Por",
         "Horário Autorização", "Início Doca", "Fim Doca",
-        "DTS Observação", "Produtos SKU", "Notas", "Diferença OS",
+        "Romaneio/Manifesto", "Produtos SKU", "Notas",
         "Quantidade NFS", "Paletes NF", "Paletes Conferido",
         "Peso KG", "Diferença Produtos", "Equipe", "Operacional Por",
         "Horário Operacional"
@@ -1228,7 +1230,6 @@ def relatorio_excel():
             c.get("dts_observacao"),
             c.get("produtos_sku"),
             c.get("notas"),
-            c.get("diferenca_os"),
             c.get("quantidade_nfs"),
             c.get("qtd_paletes_nf"),
             c.get("qtd_paletes_conferido"),

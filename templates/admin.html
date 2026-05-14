@@ -41,10 +41,23 @@
         </div>
 
         <div>
-            <a href="/admin/programacao-cross" class="btn btn-primary me-2">Programação Cross</a>
-            <a href="/registros_encarregado" class="btn btn-warning me-2">Registros Encarregado</a>
-            <a href="/tv" target="_blank" class="btn btn-success me-2">Abrir TV</a>
-            <a href="/logout" class="btn btn-light">Sair</a>
+
+            <a href="/admin/programacao-cd" class="btn btn-primary me-2">
+                Programação CD
+            </a>
+
+            <a href="/registros_encarregado" class="btn btn-warning me-2">
+                Registros Operacionais
+            </a>
+
+            <a href="/tv" target="_blank" class="btn btn-dark me-2">
+                Abrir TV
+            </a>
+
+            <a href="/logout" class="btn btn-light">
+                Sair
+            </a>
+
         </div>
 
     </div>
@@ -79,7 +92,9 @@
             </div>
 
             <div class="col-md-1">
-                <button class="btn btn-primary w-100">Pesquisar</button>
+                <button class="btn btn-primary w-100">
+                    Pesquisar
+                </button>
             </div>
 
             <div class="col-md-2">
@@ -101,6 +116,7 @@
         <div class="table-responsive">
 
             <table class="table table-bordered table-striped mt-3">
+
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -118,22 +134,24 @@
                         <th>Horário Autorização</th>
                         <th>Início Doca</th>
                         <th>Fim Doca</th>
-                        <th>DTS Observação</th>
+                        <th>Romaneio/Manifesto</th>
                         <th>SKU</th>
                         <th>Notas</th>
-                        <th>Dif. OS</th>
                         <th>Qtd NFS</th>
                         <th>Paletes NF</th>
                         <th>Paletes Conferido</th>
                         <th>Peso KG</th>
                         <th>Dif. Produtos</th>
+                        <th>Equipe</th>
                         <th>Operacional Por</th>
                     </tr>
                 </thead>
 
                 <tbody>
+
                     {% for c in caminhoes %}
                     <tr>
+
                         <td>{{ c.id }}</td>
                         <td>{{ c.placa }}</td>
                         <td>{{ c.motorista }}</td>
@@ -143,27 +161,52 @@
                         <td>{{ c.nota_fiscal }}</td>
 
                         <td>
+
                             {% if c.setor_doca == 'CROSS' %}
-                                <span class="badge bg-success">Doca CROSS</span>
+                                <span class="badge bg-success">
+                                    Doca CROSS
+                                </span>
+
                             {% elif c.setor_doca == 'CD' %}
-                                <span class="badge bg-primary">Doca CD</span>
+                                <span class="badge bg-primary">
+                                    Doca CD
+                                </span>
+
                             {% else %}
-                                <span class="badge bg-secondary">-</span>
+                                <span class="badge bg-secondary">
+                                    -
+                                </span>
                             {% endif %}
+
                         </td>
 
-                        <td>{{ c.doca or '-' }}</td>
+                        <td>
+                            {{ c.doca or '-' }}
+                        </td>
 
                         <td>
+
                             {% if c.status == 'aguardando' or not c.status %}
-                                <span class="badge bg-warning text-dark">Aguardando</span>
+                                <span class="badge bg-warning text-dark">
+                                    Aguardando
+                                </span>
+
                             {% elif c.status == 'autorizado' %}
-                                <span class="badge bg-info text-dark">Autorizado</span>
+                                <span class="badge bg-info text-dark">
+                                    Autorizado
+                                </span>
+
                             {% elif c.status == 'na_doca' %}
-                                <span class="badge bg-success">Na Doca</span>
+                                <span class="badge bg-success">
+                                    Na Doca
+                                </span>
+
                             {% elif c.status == 'finalizado' %}
-                                <span class="badge bg-secondary">Finalizado</span>
+                                <span class="badge bg-secondary">
+                                    Finalizado
+                                </span>
                             {% endif %}
+
                         </td>
 
                         <td>
@@ -174,7 +217,9 @@
                             {% endif %}
                         </td>
 
-                        <td>{{ c.autorizado_por or '-' }}</td>
+                        <td>
+                            {{ c.autorizado_por or '-' }}
+                        </td>
 
                         <td>
                             {% if c.horario_autorizacao %}
@@ -200,19 +245,51 @@
                             {% endif %}
                         </td>
 
-                        <td>{{ c.dts_observacao or '-' }}</td>
-                        <td>{{ c.produtos_sku or '-' }}</td>
-                        <td>{{ c.notas or '-' }}</td>
-                        <td>{{ c.diferenca_os or '-' }}</td>
-                        <td>{{ c.quantidade_nfs or '-' }}</td>
-                        <td>{{ c.qtd_paletes_nf or '-' }}</td>
-                        <td>{{ c.qtd_paletes_conferido or '-' }}</td>
-                        <td>{{ c.peso_kg or '-' }}</td>
-                        <td>{{ c.diferenca_produtos or '-' }}</td>
-                        <td>{{ c.operacional_cadastrado_por or '-' }}</td>
+                        <td>
+                            {{ c.dts_observacao or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.produtos_sku or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.notas or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.quantidade_nfs or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.qtd_paletes_nf or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.qtd_paletes_conferido or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.peso_kg or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.diferenca_produtos or '-' }}
+                        </td>
+
+                        <td style="white-space: pre-line;">
+                            {{ c.equipe or '-' }}
+                        </td>
+
+                        <td>
+                            {{ c.operacional_cadastrado_por or '-' }}
+                        </td>
+
                     </tr>
                     {% endfor %}
+
                 </tbody>
+
             </table>
 
         </div>
