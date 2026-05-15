@@ -364,7 +364,9 @@ def criar_colunas():
     cur.close()
     conn.close()
 
+
 TABELAS_CRIADAS = False
+
 
 @app.before_request
 def iniciar():
@@ -376,56 +378,90 @@ def iniciar():
 
 
 def importar_planilha_programacao(arquivo, tabela):
-    wb = load_workbook(arquivo, data_only=True)
-    ws = wb.active
+    conn = None
+    cur = None
 
-    cabecalhos = []
+    try:
+        wb = load_workbook(
+            arquivo,
+            data_only=True,
+            read_only=True
+        )
 
-    for celula in ws[1]:
-        cabecalho_normalizado = normalizar_cabecalho(celula.value)
-        cabecalhos.append(MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado))
+        ws = wb.active
 
-    registros_importados = 0
+        cabecalhos = []
 
-    conn = conectar()
-    cur = conn.cursor()
+        for celula in ws[1]:
+            cabecalho_normalizado = normalizar_cabecalho(celula.value)
+            cabecalhos.append(MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado))
 
-    for linha in ws.iter_rows(min_row=2, values_only=True):
-        dados = {}
+        registros_importados = 0
+        contador_commit = 0
 
-        for indice, valor in enumerate(linha):
-            if indice < len(cabecalhos):
-                coluna_banco = cabecalhos[indice]
+        conn = conectar()
+        cur = conn.cursor()
 
-                if coluna_banco:
-                    if coluna_banco in COLUNAS_DATA:
-                        dados[coluna_banco] = converter_data(valor)
-                    elif coluna_banco in COLUNAS_NUMERO:
-                        dados[coluna_banco] = converter_numero(valor)
-                    else:
-                        dados[coluna_banco] = limpar_texto(valor)
+        for linha in ws.iter_rows(min_row=2, values_only=True):
+            dados = {}
 
-        if not any(dados.values()):
-            continue
+            for indice, valor in enumerate(linha):
+                if indice < len(cabecalhos):
+                    coluna_banco = cabecalhos[indice]
 
-        colunas = list(dados.keys())
-        valores = [dados[coluna] for coluna in colunas]
-        placeholders = ", ".join(["%s"] * len(colunas))
+                    if coluna_banco:
+                        if coluna_banco in COLUNAS_DATA:
+                            dados[coluna_banco] = converter_data(valor)
+                        elif coluna_banco in COLUNAS_NUMERO:
+                            dados[coluna_banco] = converter_numero(valor)
+                        else:
+                            dados[coluna_banco] = limpar_texto(valor)
 
-        sql = f"""
-            INSERT INTO {tabela}
-            ({", ".join(colunas)})
-            VALUES ({placeholders});
-        """
+            if not any(dados.values()):
+                continue
 
-        cur.execute(sql, valores)
-        registros_importados += 1
+            colunas = list(dados.keys())
 
-    conn.commit()
-    cur.close()
-    conn.close()
+            if not colunas:
+                continue
 
-    return registros_importados
+            valores = [dados[coluna] for coluna in colunas]
+            placeholders = ", ".join(["%s"] * len(colunas))
+
+            sql = f"""
+                INSERT INTO {tabela}
+                ({", ".join(colunas)})
+                VALUES ({placeholders});
+            """
+
+            cur.execute(sql, valores)
+
+            registros_importados += 1
+            contador_commit += 1
+
+            if contador_commit >= 100:
+                conn.commit()
+                contador_commit = 0
+
+        conn.commit()
+
+        try:
+            wb.close()
+        except Exception:
+            pass
+
+        return registros_importados
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise e
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
 def buscar_programacoes(tabela, busca="", data_inicio="", data_fim=""):
@@ -1009,9 +1045,9 @@ def editar_programacao_cd(id):
         perfil=session.get("tipo")
     )
 
+
 @app.route("/admin/programacao-cross/editar/<int:id>", methods=["GET", "POST"])
 def editar_programacao_cross(id):
-
     if not is_admin():
         return redirect(url_for("login"))
 
@@ -1019,19 +1055,15 @@ def editar_programacao_cross(id):
     cur = conn.cursor()
 
     if request.method == "POST":
-
         valores = []
 
         for coluna in COLUNAS_PROGRAMACAO:
-
             valor = request.form.get(coluna)
 
             if coluna in COLUNAS_DATA:
                 valor = converter_data(valor)
-
             elif coluna in COLUNAS_NUMERO:
                 valor = converter_numero(valor)
-
             else:
                 valor = limpar_texto(valor)
 
@@ -1039,10 +1071,7 @@ def editar_programacao_cross(id):
 
         valores.append(id)
 
-        set_sql = ", ".join([
-            f"{coluna} = %s"
-            for coluna in COLUNAS_PROGRAMACAO
-        ])
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO])
 
         cur.execute(f"""
             UPDATE programacao_cross
@@ -1051,7 +1080,6 @@ def editar_programacao_cross(id):
         """, valores)
 
         conn.commit()
-
         cur.close()
         conn.close()
 
@@ -1078,6 +1106,7 @@ def editar_programacao_cross(id):
         usuario=session.get("usuario"),
         perfil=session.get("tipo")
     )
+
 
 @app.route("/admin/programacao-cd/excluir/<int:id>", methods=["POST"])
 def excluir_programacao_cd(id):
