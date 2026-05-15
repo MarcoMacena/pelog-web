@@ -364,10 +364,15 @@ def criar_colunas():
     cur.close()
     conn.close()
 
+TABELAS_CRIADAS = False
 
 @app.before_request
 def iniciar():
-    criar_colunas()
+    global TABELAS_CRIADAS
+
+    if not TABELAS_CRIADAS:
+        criar_colunas()
+        TABELAS_CRIADAS = True
 
 
 def importar_planilha_programacao(arquivo, tabela):
