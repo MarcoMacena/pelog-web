@@ -87,41 +87,6 @@
 
         </form>
 
-        <form method="GET" class="row g-2 mb-3">
-
-            <div class="col-md-4">
-                <input 
-                    type="text"
-                    name="busca"
-                    class="form-control"
-                    placeholder="Buscar..."
-                    value="{{ busca or '' }}">
-            </div>
-
-            <div class="col-md-3">
-                <input 
-                    type="date"
-                    name="data_inicio"
-                    class="form-control"
-                    value="{{ data_inicio or '' }}">
-            </div>
-
-            <div class="col-md-3">
-                <input 
-                    type="date"
-                    name="data_fim"
-                    class="form-control"
-                    value="{{ data_fim or '' }}">
-            </div>
-
-            <div class="col-md-2">
-                <button class="btn btn-primary w-100">
-                    Filtrar
-                </button>
-            </div>
-
-        </form>
-
         <form method="POST"
               action="/admin/programacao-cross/limpar"
               onsubmit="return confirm('Deseja limpar toda a programação CROSS?');">
@@ -140,14 +105,12 @@
 
                     <tr>
                         <th>ID</th>
+                        <th>Manifesto</th>
                         <th>Motorista</th>
-                        <th>Transportadora</th>
-                        <th>Placa</th>
-                        <th>NF</th>
-                        <th>Material</th>
-                        <th>Agenda</th>
+                        <th>CPF</th>
+                        <th>Veículo</th>
                         <th>Horário Chegada</th>
-                        <th>Usuário Chegada</th>
+                        <th>Usuário</th>
                         <th>Ações</th>
                     </tr>
 
@@ -161,19 +124,21 @@
 
                         <td>{{ item.id }}</td>
 
-                        <td>{{ item.nome_motorista }}</td>
-
-                        <td>{{ item.nome_transportadora }}</td>
-
                         <td>
-                            {{ item.placa_composicao or item.placa_simples_veiculo }}
+                            {{ item.numero_transporte or '-' }}
                         </td>
 
-                        <td>{{ item.numero_nfe }}</td>
+                        <td>
+                            {{ item.nome_motorista or '-' }}
+                        </td>
 
-                        <td>{{ item.material }}</td>
+                        <td>
+                            {{ item.chave_acesso or '-' }}
+                        </td>
 
-                        <td>{{ item.data_agenda_entrega }}</td>
+                        <td>
+                            {{ item.placa_simples_veiculo or '-' }}
+                        </td>
 
                         <td>
 
@@ -198,13 +163,6 @@
                         <td>
 
                             <div class="d-flex gap-2">
-
-                                <a href="/admin/programacao-cross/editar/{{ item.id }}"
-                                   class="btn btn-warning btn-sm">
-
-                                    Editar
-
-                                </a>
 
                                 <form method="POST"
                                       action="/admin/programacao-cross/excluir/{{ item.id }}"

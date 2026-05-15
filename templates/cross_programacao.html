@@ -24,10 +24,6 @@
             font-size:13px;
         }
 
-        .badge-chegada{
-            font-size:12px;
-        }
-
     </style>
 
 </head>
@@ -95,13 +91,11 @@
 
                     <tr>
                         <th>ID</th>
+                        <th>Manifesto</th>
                         <th>Motorista</th>
-                        <th>Transportadora</th>
-                        <th>Placa</th>
-                        <th>NF</th>
-                        <th>Material</th>
-                        <th>Agenda</th>
-                        <th>Chegada</th>
+                        <th>CPF</th>
+                        <th>Veículo</th>
+                        <th>Horário Chegada</th>
                         <th>Ação</th>
                     </tr>
 
@@ -109,75 +103,78 @@
 
                 <tbody>
 
-                    {% for item in programacoes %}
+                {% for item in programacoes %}
 
-                    <tr>
+                <tr>
 
-                        <td>{{ item.id }}</td>
+                    <td>{{ item.id }}</td>
 
-                        <td>{{ item.nome_motorista }}</td>
+                    <td>
+                        {{ item.numero_transporte or '-' }}
+                    </td>
 
-                        <td>{{ item.nome_transportadora }}</td>
+                    <td>
+                        {{ item.nome_motorista or '-' }}
+                    </td>
 
-                        <td>
-                            {{ item.placa_composicao or item.placa_simples_veiculo }}
-                        </td>
+                    <td>
+                        {{ item.chave_acesso or '-' }}
+                    </td>
 
-                        <td>{{ item.numero_nfe }}</td>
+                    <td>
+                        {{ item.placa_simples_veiculo or '-' }}
+                    </td>
 
-                        <td>{{ item.material }}</td>
+                    <td>
 
-                        <td>{{ item.data_agenda_entrega }}</td>
+                        {% if item.horario_chegada %}
 
-                        <td>
+                            <span class="badge bg-success">
+                                {{ item.horario_chegada.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
 
-                            {% if item.horario_chegada %}
+                            <br>
 
-                                <span class="badge bg-success badge-chegada">
-                                    {{ item.horario_chegada.strftime('%d/%m/%Y %H:%M') }}
-                                </span>
+                            <small>
+                                {{ item.usuario_chegada }}
+                            </small>
 
-                                <br>
+                        {% else %}
 
-                                <small>
-                                    {{ item.usuario_chegada }}
-                                </small>
+                            <span class="badge bg-warning text-dark">
+                                Aguardando
+                            </span>
 
-                            {% else %}
+                        {% endif %}
 
-                                <span class="badge bg-warning text-dark">
-                                    Aguardando
-                                </span>
+                    </td>
 
-                            {% endif %}
+                    <td>
 
-                        </td>
+                        {% if not item.horario_chegada %}
 
-                        <td>
+                        <form method="POST"
+                              action="/cross/registrar_chegada/{{ item.id }}">
 
-                            {% if not item.horario_chegada %}
-
-                            <form method="POST" action="/cross/registrar_chegada/{{ item.id }}">
-
-                                <button class="btn btn-success btn-sm">
-                                    Registrar Chegada
-                                </button>
-
-                            </form>
-
-                            {% else %}
-
-                            <button class="btn btn-secondary btn-sm" disabled>
-                                Registrado
+                            <button class="btn btn-success btn-sm">
+                                Registrar Chegada
                             </button>
 
-                            {% endif %}
+                        </form>
 
-                        </td>
+                        {% else %}
 
-                    </tr>
+                        <button class="btn btn-secondary btn-sm" disabled>
+                            Registrado
+                        </button>
 
-                    {% endfor %}
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
 
                 </tbody>
 

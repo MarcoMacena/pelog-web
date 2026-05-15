@@ -193,6 +193,13 @@ MAPA_COLUNAS_EXCEL = {
     "placa simples veiculo": "placa_simples_veiculo",
     "placa simples veículo": "placa_simples_veiculo",
     "nome motorista": "nome_motorista",
+
+    "manifesto": "numero_transporte",
+    "motorista": "nome_motorista",
+    "cpf": "chave_acesso",
+    "veiculo": "placa_simples_veiculo",
+    "veículo": "placa_simples_veiculo",
+
     "chaves": "chaves",
     "altura": "altura",
     "largura": "largura",
