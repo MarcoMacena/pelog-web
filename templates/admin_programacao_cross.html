@@ -105,10 +105,10 @@
 
                     <tr>
                         <th>ID</th>
-                        <th>Manifesto</th>
                         <th>Motorista</th>
-                        <th>CPF</th>
-                        <th>Veículo</th>
+                        <th>Placa</th>
+                        <th>Pagador do Frete</th>
+                        <th>Manifesto</th>
                         <th>Horário Chegada</th>
                         <th>Usuário Chegada</th>
                         <th>Horário Saída</th>
@@ -128,19 +128,19 @@
                         <td>{{ item.id }}</td>
 
                         <td>
-                            {{ item.numero_transporte or '-' }}
-                        </td>
-
-                        <td>
                             {{ item.nome_motorista or '-' }}
                         </td>
 
                         <td>
-                            {{ item.chave_acesso or '-' }}
+                            {{ item.placa_simples_veiculo or item.placa_composicao or '-' }}
                         </td>
 
                         <td>
-                            {{ item.placa_simples_veiculo or '-' }}
+                            {{ item.nome_cliente_fornecedor or '-' }}
+                        </td>
+
+                        <td>
+                            {{ item.numero_transporte or '-' }}
                         </td>
 
                         <td>
@@ -202,6 +202,11 @@
                         <td>
 
                             <div class="d-flex gap-2">
+
+                                <a href="/admin/programacao-cross/editar/{{ item.id }}"
+                                   class="btn btn-warning btn-sm">
+                                    Editar
+                                </a>
 
                                 <form method="POST"
                                       action="/admin/programacao-cross/excluir/{{ item.id }}"

@@ -99,11 +99,10 @@
                 <thead class="table-dark">
 
                     <tr>
-                        <th>ID</th>
-                        <th>Manifesto</th>
                         <th>Motorista</th>
-                        <th>CPF</th>
-                        <th>Veículo</th>
+                        <th>Placa</th>
+                        <th>Pagador do Frete</th>
+                        <th>Manifesto</th>
                         <th>Horário Chegada</th>
                         <th>Horário Saída</th>
                         <th>Justificativa</th>
@@ -118,22 +117,20 @@
 
                 <tr>
 
-                    <td>{{ item.id }}</td>
-
-                    <td>
-                        {{ item.numero_transporte or '-' }}
-                    </td>
-
                     <td>
                         {{ item.nome_motorista or '-' }}
                     </td>
 
                     <td>
-                        {{ item.chave_acesso or '-' }}
+                        {{ item.placa_simples_veiculo or item.placa_composicao or '-' }}
                     </td>
 
                     <td>
-                        {{ item.placa_simples_veiculo or '-' }}
+                        {{ item.nome_cliente_fornecedor or '-' }}
+                    </td>
+
+                    <td>
+                        {{ item.numero_transporte or '-' }}
                     </td>
 
                     <td>

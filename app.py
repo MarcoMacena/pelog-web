@@ -148,6 +148,8 @@ MAPA_COLUNAS_EXCEL = {
     "descricao veiculo": "descricao_veiculo",
     "descrição veiculo": "descricao_veiculo",
     "nome cliente fornecedor": "nome_cliente_fornecedor",
+    "pagador do frete": "nome_cliente_fornecedor",
+    "pagador frete": "nome_cliente_fornecedor",
     "local": "local",
     "data remessa recebimento": "data_remessa_recebimento",
     "nr remessa recebimento": "nr_remessa_recebimento",
@@ -194,9 +196,13 @@ MAPA_COLUNAS_EXCEL = {
     "cliente pallet": "cliente_pallet",
     "placa composicao": "placa_composicao",
     "placa composição": "placa_composicao",
+    "placa": "placa_simples_veiculo",
     "placa simples veiculo": "placa_simples_veiculo",
     "placa simples veículo": "placa_simples_veiculo",
     "nome motorista": "nome_motorista",
+    "programacao 18 05 2026 motorista": "nome_motorista",
+    "programação 18 05 2026 motorista": "nome_motorista",
+    "h o r a r i o chegada": "data_hora_agendamento",
 
     "manifesto": "numero_transporte",
     "motorista": "nome_motorista",
@@ -518,7 +524,12 @@ def importar_planilha_programacao(arquivo, tabela):
 
         for celula in ws[1]:
             cabecalho_normalizado = normalizar_cabecalho(celula.value)
-            cabecalhos.append(MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado))
+            coluna_banco = MAPA_COLUNAS_EXCEL.get(cabecalho_normalizado)
+
+            if not coluna_banco and cabecalho_normalizado.endswith("motorista"):
+                coluna_banco = "nome_motorista"
+
+            cabecalhos.append(coluna_banco)
 
         registros_importados = 0
         contador_commit = 0
@@ -1379,23 +1390,20 @@ def editar_programacao_cross(id):
     cur = conn.cursor()
 
     if request.method == "POST":
+        colunas_cross = [
+            "numero_transporte",
+            "nome_motorista",
+            "nome_cliente_fornecedor",
+            "placa_simples_veiculo",
+        ]
         valores = []
 
-        for coluna in COLUNAS_PROGRAMACAO:
-            valor = request.form.get(coluna)
-
-            if coluna in COLUNAS_DATA:
-                valor = converter_data(valor)
-            elif coluna in COLUNAS_NUMERO:
-                valor = converter_numero(valor)
-            else:
-                valor = limpar_texto(valor)
-
-            valores.append(valor)
+        for coluna in colunas_cross:
+            valores.append(limpar_texto(request.form.get(coluna)))
 
         valores.append(id)
 
-        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO])
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in colunas_cross])
 
         cur.execute(f"""
             UPDATE programacao_cross
