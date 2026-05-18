@@ -110,7 +110,10 @@
                         <th>CPF</th>
                         <th>Veículo</th>
                         <th>Horário Chegada</th>
-                        <th>Usuário</th>
+                        <th>Usuário Chegada</th>
+                        <th>Horário Saída</th>
+                        <th>Usuário Saída</th>
+                        <th>Justificativa</th>
                         <th>Ações</th>
                     </tr>
 
@@ -157,6 +160,42 @@
                         <td>
 
                             {{ item.usuario_chegada or '-' }}
+
+                        </td>
+
+                        <td>
+
+                            {% if item.horario_saida %}
+
+                                {{ item.horario_saida.strftime('%d/%m/%Y %H:%M') }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {{ item.usuario_saida or '-' }}
+
+                        </td>
+
+                        <td style="white-space: pre-line;">
+
+                            {{ item.justificativa or '-' }}
+
+                            {% if item.usuario_justificativa %}
+                                <br>
+                                <small class="text-muted">
+                                    {{ item.usuario_justificativa }}
+                                    {% if item.horario_justificativa %}
+                                        - {{ item.horario_justificativa.strftime('%d/%m/%Y %H:%M') }}
+                                    {% endif %}
+                                </small>
+                            {% endif %}
 
                         </td>
 

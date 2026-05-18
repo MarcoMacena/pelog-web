@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Programação Expedição - PELOG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body{
+            background:#1f2e3a;
+        }
+
+        .box{
+            background:white;
+            padding:20px;
+            border-radius:15px;
+            margin-top:20px;
+            box-shadow:0px 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .table{
+            font-size:13px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container-fluid">
+
+    <div class="box">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Programação Expedição</h2>
+
+            <div>
+                <a href="/encarregado" class="btn btn-secondary">
+                    Voltar
+                </a>
+            </div>
+        </div>
+
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md-5">
+                <input
+                    type="text"
+                    name="busca"
+                    class="form-control"
+                    placeholder="Buscar..."
+                    value="{{ busca or '' }}">
+            </div>
+
+            <div class="col-md-3">
+                <input
+                    type="date"
+                    name="data_inicio"
+                    class="form-control"
+                    value="{{ data_inicio or '' }}">
+            </div>
+
+            <div class="col-md-3">
+                <input
+                    type="date"
+                    name="data_fim"
+                    class="form-control"
+                    value="{{ data_fim or '' }}">
+            </div>
+
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100">
+                    OK
+                </button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Destino</th>
+                        <th>Cliente</th>
+                        <th>Material</th>
+                        <th>NF</th>
+                        <th>DT 1ª Perna</th>
+                        <th>DT 2ª Perna</th>
+                        <th>Agenda</th>
+                        <th>PLT</th>
+                        <th>Volume</th>
+                        <th>Peso</th>
+                        <th>Tipo Veículo</th>
+                        <th>Altura</th>
+                        <th>Largura</th>
+                        <th>Veículo</th>
+                        <th>Motorista</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in programacoes %}
+                    <tr>
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.destino or '-' }}</td>
+                        <td>{{ item.cliente or '-' }}</td>
+                        <td>{{ item.material or '-' }}</td>
+                        <td>{{ item.nf or '-' }}</td>
+                        <td>{{ item.dt_primeira_perna or '-' }}</td>
+                        <td>{{ item.dt_segunda_perna or '-' }}</td>
+                        <td>{{ item.info_agenda_entrega or '-' }}</td>
+                        <td>{{ item.plt or '-' }}</td>
+                        <td>{{ item.volume_m3 or '-' }}</td>
+                        <td>{{ item.peso_ton or '-' }}</td>
+                        <td>{{ item.tipo_veiculo or '-' }}</td>
+                        <td>{{ item.altura_plt or '-' }}</td>
+                        <td>{{ item.largura_plt or '-' }}</td>
+                        <td>{{ item.veiculo or '-' }}</td>
+                        <td>{{ item.motorista or '-' }}</td>
+
+                        <td>
+                            {% if perfil == 'encarregado' %}
+                            <a href="/cd/programacao-expedicao/editar-motorista/{{ item.id }}"
+                               class="btn btn-warning btn-sm">
+                                Editar Motorista
+                            </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if programacoes|length == 0 %}
+            <div class="alert alert-warning">
+                Nenhum registro encontrado.
+            </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+</html>

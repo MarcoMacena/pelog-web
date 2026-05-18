@@ -125,6 +125,10 @@ def normalizar_cabecalho(valor):
         "ç": "c",
         "º": "",
         "°": "",
+        "ª": "a",
+        "³": "3",
+        "(": " ",
+        ")": " ",
         ".": "",
         "-": " ",
         "/": " ",
@@ -268,6 +272,61 @@ COLUNAS_NUMERO = [
 ]
 
 
+MAPA_COLUNAS_EXPEDICAO = {
+    "destino": "destino",
+    "cliente": "cliente",
+    "material": "material",
+    "nf": "nf",
+    "dt 1 perna": "dt_primeira_perna",
+    "dt 1a perna": "dt_primeira_perna",
+    "dt 1Âª perna": "dt_primeira_perna",
+    "dt 2 perna": "dt_segunda_perna",
+    "dt 2a perna": "dt_segunda_perna",
+    "dt 2Âª perna": "dt_segunda_perna",
+    "inf agenda entrega": "info_agenda_entrega",
+    "info agenda entrega": "info_agenda_entrega",
+    "plt": "plt",
+    "volume mÂ³": "volume_m3",
+    "volume m3": "volume_m3",
+    "peso ton": "peso_ton",
+    "tipo de veiculo": "tipo_veiculo",
+    "tipo de veÃ­culo": "tipo_veiculo",
+    "altura plt": "altura_plt",
+    "largura plt": "largura_plt",
+    "veiculo": "veiculo",
+    "veÃ­culo": "veiculo",
+    "motorista": "motorista",
+}
+
+
+COLUNAS_EXPEDICAO = [
+    "destino",
+    "cliente",
+    "material",
+    "nf",
+    "dt_primeira_perna",
+    "dt_segunda_perna",
+    "info_agenda_entrega",
+    "plt",
+    "volume_m3",
+    "peso_ton",
+    "tipo_veiculo",
+    "altura_plt",
+    "largura_plt",
+    "veiculo",
+    "motorista",
+]
+
+
+COLUNAS_NUMERO_EXPEDICAO = [
+    "plt",
+    "volume_m3",
+    "peso_ton",
+    "altura_plt",
+    "largura_plt",
+]
+
+
 def criar_tabela_programacao(cur, nome_tabela):
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {nome_tabela} (
@@ -314,12 +373,67 @@ def criar_tabela_programacao(cur, nome_tabela):
             largura VARCHAR(50),
             horario_chegada TIMESTAMP,
             usuario_chegada VARCHAR(100),
+            horario_saida TIMESTAMP,
+            usuario_saida VARCHAR(100),
+            justificativa TEXT,
+            usuario_justificativa VARCHAR(100),
+            horario_justificativa TIMESTAMP,
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
 
     cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS horario_chegada TIMESTAMP;")
     cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS usuario_chegada VARCHAR(100);")
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS horario_saida TIMESTAMP;")
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS usuario_saida VARCHAR(100);")
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS justificativa TEXT;")
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS usuario_justificativa VARCHAR(100);")
+    cur.execute(f"ALTER TABLE {nome_tabela} ADD COLUMN IF NOT EXISTS horario_justificativa TIMESTAMP;")
+
+
+def criar_tabela_expedicao(cur):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS programacao_expedicao (
+            id SERIAL PRIMARY KEY,
+            destino VARCHAR(150),
+            cliente VARCHAR(200),
+            material VARCHAR(100),
+            nf VARCHAR(100),
+            dt_primeira_perna VARCHAR(100),
+            dt_segunda_perna VARCHAR(100),
+            info_agenda_entrega TEXT,
+            plt NUMERIC(12,3),
+            volume_m3 NUMERIC(12,3),
+            peso_ton NUMERIC(12,3),
+            tipo_veiculo VARCHAR(150),
+            altura_plt NUMERIC(12,3),
+            largura_plt NUMERIC(12,3),
+            veiculo VARCHAR(100),
+            motorista VARCHAR(200),
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    tipos = {
+        "destino": "VARCHAR(150)",
+        "cliente": "VARCHAR(200)",
+        "material": "VARCHAR(100)",
+        "nf": "VARCHAR(100)",
+        "dt_primeira_perna": "VARCHAR(100)",
+        "dt_segunda_perna": "VARCHAR(100)",
+        "info_agenda_entrega": "TEXT",
+        "plt": "NUMERIC(12,3)",
+        "volume_m3": "NUMERIC(12,3)",
+        "peso_ton": "NUMERIC(12,3)",
+        "tipo_veiculo": "VARCHAR(150)",
+        "altura_plt": "NUMERIC(12,3)",
+        "largura_plt": "NUMERIC(12,3)",
+        "veiculo": "VARCHAR(100)",
+        "motorista": "VARCHAR(200)",
+    }
+
+    for coluna, tipo in tipos.items():
+        cur.execute(f"ALTER TABLE programacao_expedicao ADD COLUMN IF NOT EXISTS {coluna} {tipo};")
 
 
 def criar_colunas():
@@ -358,7 +472,9 @@ def criar_colunas():
         "ADD COLUMN IF NOT EXISTS diferenca_produtos TEXT",
         "ADD COLUMN IF NOT EXISTS equipe TEXT",
         "ADD COLUMN IF NOT EXISTS operacional_cadastrado_por VARCHAR(100)",
-        "ADD COLUMN IF NOT EXISTS horario_operacional TIMESTAMP"
+        "ADD COLUMN IF NOT EXISTS horario_operacional TIMESTAMP",
+        "ADD COLUMN IF NOT EXISTS horario_saida TIMESTAMP",
+        "ADD COLUMN IF NOT EXISTS saida_registrada_por VARCHAR(100)"
     ]
 
     for coluna in colunas:
@@ -366,6 +482,7 @@ def criar_colunas():
 
     criar_tabela_programacao(cur, "programacao_cd")
     criar_tabela_programacao(cur, "programacao_cross")
+    criar_tabela_expedicao(cur)
 
     conn.commit()
     cur.close()
@@ -471,6 +588,90 @@ def importar_planilha_programacao(arquivo, tabela):
             conn.close()
 
 
+def importar_planilha_expedicao(arquivo):
+    conn = None
+    cur = None
+
+    try:
+        wb = load_workbook(
+            arquivo,
+            data_only=True,
+            read_only=True
+        )
+
+        ws = wb.active
+        cabecalhos = []
+
+        for celula in ws[1]:
+            cabecalho_normalizado = normalizar_cabecalho(celula.value)
+            cabecalhos.append(MAPA_COLUNAS_EXPEDICAO.get(cabecalho_normalizado))
+
+        registros_importados = 0
+        contador_commit = 0
+
+        conn = conectar()
+        cur = conn.cursor()
+
+        for linha in ws.iter_rows(min_row=2, values_only=True):
+            dados = {}
+
+            for indice, valor in enumerate(linha):
+                if indice < len(cabecalhos):
+                    coluna_banco = cabecalhos[indice]
+
+                    if coluna_banco:
+                        if coluna_banco in COLUNAS_NUMERO_EXPEDICAO:
+                            dados[coluna_banco] = converter_numero(valor)
+                        else:
+                            dados[coluna_banco] = limpar_texto(valor)
+
+            if not any(dados.values()):
+                continue
+
+            colunas = list(dados.keys())
+
+            if not colunas:
+                continue
+
+            valores = [dados[coluna] for coluna in colunas]
+            placeholders = ", ".join(["%s"] * len(colunas))
+
+            sql = f"""
+                INSERT INTO programacao_expedicao
+                ({", ".join(colunas)})
+                VALUES ({placeholders});
+            """
+
+            cur.execute(sql, valores)
+
+            registros_importados += 1
+            contador_commit += 1
+
+            if contador_commit >= 100:
+                conn.commit()
+                contador_commit = 0
+
+        conn.commit()
+
+        try:
+            wb.close()
+        except Exception:
+            pass
+
+        return registros_importados
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise e
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
 def buscar_programacoes(tabela, busca="", data_inicio="", data_fim=""):
     conn = conectar()
     cur = conn.cursor()
@@ -509,6 +710,55 @@ def buscar_programacoes(tabela, busca="", data_inicio="", data_fim=""):
         params.append(data_fim)
 
     query += " ORDER BY data_agenda_entrega ASC NULLS LAST, id DESC;"
+
+    cur.execute(query, params)
+    dados = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return dados
+
+
+def buscar_programacao_expedicao(busca="", data_inicio="", data_fim=""):
+    conn = conectar()
+    cur = conn.cursor()
+
+    query = """
+        SELECT *
+        FROM programacao_expedicao
+        WHERE 1=1
+    """
+
+    params = []
+
+    if busca:
+        query += """
+            AND (
+                destino ILIKE %s OR
+                cliente ILIKE %s OR
+                material ILIKE %s OR
+                nf ILIKE %s OR
+                dt_primeira_perna ILIKE %s OR
+                dt_segunda_perna ILIKE %s OR
+                info_agenda_entrega ILIKE %s OR
+                tipo_veiculo ILIKE %s OR
+                veiculo ILIKE %s OR
+                motorista ILIKE %s
+            )
+        """
+        termo = f"%{busca}%"
+        params.extend([termo] * 10)
+
+    if data_inicio:
+        query += " AND criado_em::date >= %s"
+        params.append(data_inicio)
+
+    if data_fim:
+        query += " AND criado_em::date <= %s"
+        params.append(data_fim)
+
+    query += " ORDER BY id DESC;"
 
     cur.execute(query, params)
     dados = cur.fetchall()
@@ -759,7 +1009,7 @@ def finalizar_doca(id):
 
     cur.execute("""
         UPDATE caminhoes
-        SET status = 'finalizado',
+        SET status = 'doca_finalizada',
             fim_doca = %s
         WHERE id = %s
           AND setor_doca = %s;
@@ -774,6 +1024,34 @@ def finalizar_doca(id):
     conn.close()
 
     return redirect(url_for("encarregado"))
+
+
+@app.route("/finalizar_saida/<int:id>", methods=["POST"])
+def finalizar_saida(id):
+    if session.get("tipo") != "portaria":
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE caminhoes
+        SET status = 'finalizado',
+            horario_saida = %s,
+            saida_registrada_por = %s
+        WHERE id = %s
+          AND status = 'doca_finalizada';
+    """, (
+        agora_brasil(),
+        session.get("usuario"),
+        id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("portaria"))
 
 
 @app.route("/cadastro_operacional/<int:id>", methods=["GET", "POST"])
@@ -991,6 +1269,45 @@ def admin_programacao_cross():
     )
 
 
+@app.route("/admin/programacao-expedicao", methods=["GET", "POST"])
+def admin_programacao_expedicao():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    mensagem = None
+    erro = None
+
+    if request.method == "POST":
+        arquivo = request.files.get("arquivo_excel")
+
+        if not arquivo or arquivo.filename == "":
+            erro = "Selecione uma planilha Excel para importar."
+        else:
+            try:
+                registros = importar_planilha_expedicao(arquivo)
+                mensagem = f"Planilha Expedição importada com sucesso. {registros} registros adicionados."
+            except Exception as e:
+                erro = f"Erro ao importar planilha Expedição: {str(e)}"
+
+    busca = request.args.get("busca", "")
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+
+    programacoes = buscar_programacao_expedicao(busca, data_inicio, data_fim)
+
+    return render_template(
+        "admin_programacao_expedicao.html",
+        programacoes=programacoes,
+        busca=busca,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        mensagem=mensagem,
+        erro=erro,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
 @app.route("/admin/programacao-cd/editar/<int:id>", methods=["GET", "POST"])
 def editar_programacao_cd(id):
     if not is_admin():
@@ -1115,6 +1432,67 @@ def editar_programacao_cross(id):
     )
 
 
+@app.route("/admin/programacao-expedicao/editar/<int:id>", methods=["GET", "POST"])
+def editar_programacao_expedicao(id):
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        valores = []
+
+        for coluna in COLUNAS_EXPEDICAO:
+            valor = request.form.get(coluna)
+
+            if coluna in COLUNAS_NUMERO_EXPEDICAO:
+                valor = converter_numero(valor)
+            else:
+                valor = limpar_texto(valor)
+
+            valores.append(valor)
+
+        valores.append(id)
+
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_EXPEDICAO])
+
+        cur.execute(f"""
+            UPDATE programacao_expedicao
+            SET {set_sql}
+            WHERE id = %s;
+        """, valores)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return redirect(url_for("admin_programacao_expedicao"))
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_expedicao
+        WHERE id = %s;
+    """, (id,))
+
+    registro = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not registro:
+        return redirect(url_for("admin_programacao_expedicao"))
+
+    return render_template(
+        "editar_programacao_expedicao.html",
+        registro=registro,
+        colunas=COLUNAS_EXPEDICAO,
+        colunas_numero=COLUNAS_NUMERO_EXPEDICAO,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
 @app.route("/admin/programacao-cd/excluir/<int:id>", methods=["POST"])
 def excluir_programacao_cd(id):
     if not is_admin():
@@ -1189,6 +1567,43 @@ def limpar_programacao_cross():
     return redirect(url_for("admin_programacao_cross"))
 
 
+@app.route("/admin/programacao-expedicao/excluir/<int:id>", methods=["POST"])
+def excluir_programacao_expedicao(id):
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM programacao_expedicao
+        WHERE id = %s;
+    """, (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_programacao_expedicao"))
+
+
+@app.route("/admin/programacao-expedicao/limpar", methods=["POST"])
+def limpar_programacao_expedicao():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM programacao_expedicao;")
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin_programacao_expedicao"))
+
+
 @app.route("/cd/programacao")
 def cd_programacao():
     if session.get("tipo") != "encarregado" and session.get("tipo") != "admin":
@@ -1209,6 +1624,79 @@ def cd_programacao():
         busca=busca,
         data_inicio=data_inicio,
         data_fim=data_fim,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/cd/programacao-expedicao")
+def cd_programacao_expedicao():
+    if session.get("tipo") != "encarregado" and session.get("tipo") != "admin":
+        return redirect(url_for("login"))
+
+    if not is_cd_autorizado() and not is_admin():
+        return redirect(url_for("encarregado"))
+
+    busca = request.args.get("busca", "")
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+
+    programacoes = buscar_programacao_expedicao(busca, data_inicio, data_fim)
+
+    return render_template(
+        "cd_programacao_expedicao.html",
+        programacoes=programacoes,
+        busca=busca,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        usuario=session.get("usuario"),
+        perfil=session.get("tipo")
+    )
+
+
+@app.route("/cd/programacao-expedicao/editar-motorista/<int:id>", methods=["GET", "POST"])
+def editar_motorista_expedicao(id):
+    if not is_cd_autorizado():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        motorista = limpar_texto(request.form.get("motorista"))
+
+        cur.execute("""
+            UPDATE programacao_expedicao
+            SET motorista = %s
+            WHERE id = %s;
+        """, (
+            motorista,
+            id
+        ))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return redirect(url_for("cd_programacao_expedicao"))
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_expedicao
+        WHERE id = %s;
+    """, (id,))
+
+    registro = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not registro:
+        return redirect(url_for("cd_programacao_expedicao"))
+
+    return render_template(
+        "editar_motorista_expedicao.html",
+        registro=registro,
         usuario=session.get("usuario"),
         perfil=session.get("tipo")
     )
@@ -1255,6 +1743,66 @@ def registrar_chegada_cross(id):
     """, (
         agora_brasil(),
         session.get("usuario"),
+        id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("cross_programacao"))
+
+
+@app.route("/cross/registrar_saida/<int:id>", methods=["POST"])
+def registrar_saida_cross(id):
+    if not is_cross_autorizado():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE programacao_cross
+        SET horario_saida = %s,
+            usuario_saida = %s
+        WHERE id = %s
+          AND horario_chegada IS NOT NULL;
+    """, (
+        agora_brasil(),
+        session.get("usuario"),
+        id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("cross_programacao"))
+
+
+@app.route("/cross/registrar_justificativa/<int:id>", methods=["POST"])
+def registrar_justificativa_cross(id):
+    if not is_cross_autorizado():
+        return redirect(url_for("login"))
+
+    justificativa = limpar_texto(request.form.get("justificativa"))
+
+    if not justificativa:
+        return redirect(url_for("cross_programacao"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE programacao_cross
+        SET justificativa = %s,
+            usuario_justificativa = %s,
+            horario_justificativa = %s
+        WHERE id = %s;
+    """, (
+        justificativa,
+        session.get("usuario"),
+        agora_brasil(),
         id
     ))
 
@@ -1335,7 +1883,16 @@ def exportar_programacao_cross():
     ws = wb.active
     ws.title = "Programacao CROSS"
 
-    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO + ["horario_chegada", "usuario_chegada", "criado_em"]
+    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO + [
+        "horario_chegada",
+        "usuario_chegada",
+        "horario_saida",
+        "usuario_saida",
+        "justificativa",
+        "usuario_justificativa",
+        "horario_justificativa",
+        "criado_em"
+    ]
     ws.append(cabecalhos)
 
     for item in dados:
@@ -1346,6 +1903,11 @@ def exportar_programacao_cross():
 
         linha.append(item.get("horario_chegada"))
         linha.append(item.get("usuario_chegada"))
+        linha.append(item.get("horario_saida"))
+        linha.append(item.get("usuario_saida"))
+        linha.append(item.get("justificativa"))
+        linha.append(item.get("usuario_justificativa"))
+        linha.append(item.get("horario_justificativa"))
         linha.append(item.get("criado_em"))
 
         ws.append(linha)
@@ -1358,6 +1920,53 @@ def exportar_programacao_cross():
         arquivo,
         as_attachment=True,
         download_name="programacao_cross.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+@app.route("/exportar_programacao_expedicao")
+def exportar_programacao_expedicao():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT *
+        FROM programacao_expedicao
+        ORDER BY id DESC;
+    """)
+
+    dados = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Programacao Expedicao"
+
+    cabecalhos = ["ID"] + COLUNAS_EXPEDICAO + ["criado_em"]
+    ws.append(cabecalhos)
+
+    for item in dados:
+        linha = [item.get("id")]
+
+        for coluna in COLUNAS_EXPEDICAO:
+            linha.append(item.get(coluna))
+
+        linha.append(item.get("criado_em"))
+        ws.append(linha)
+
+    arquivo = BytesIO()
+    wb.save(arquivo)
+    arquivo.seek(0)
+
+    return send_file(
+        arquivo,
+        as_attachment=True,
+        download_name="programacao_expedicao.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -1453,6 +2062,7 @@ def relatorio_excel():
         "ID", "Placa", "Motorista", "CPF", "Empresa", "Material", "Nota Fiscal/DTS",
         "Setor", "Doca", "Status", "Entrada Portaria", "Autorizado Por",
         "Horário Autorização", "Início Doca", "Fim Doca",
+        "Saida Portaria", "Saida Registrada Por",
         "Romaneio/Manifesto", "Produtos SKU", "Notas",
         "Quantidade NFS", "Paletes NF", "Paletes Conferido",
         "Peso KG", "Diferença Produtos", "Equipe", "Operacional Por",
@@ -1476,6 +2086,8 @@ def relatorio_excel():
             c.get("horario_autorizacao"),
             c.get("inicio_doca"),
             c.get("fim_doca"),
+            c.get("horario_saida"),
+            c.get("saida_registrada_por"),
             c.get("dts_observacao"),
             c.get("produtos_sku"),
             c.get("notas"),

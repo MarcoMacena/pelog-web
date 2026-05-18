@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Programação Expedição - PELOG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body{
+            background:#1f2e3a;
+        }
+
+        .box{
+            background:white;
+            padding:25px;
+            border-radius:15px;
+            margin-top:20px;
+            box-shadow:0px 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .logo{
+            width:120px;
+        }
+
+        label{
+            font-weight:600;
+            margin-bottom:5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container-fluid px-4">
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+
+            <div>
+                <h2 class="text-white">
+                    Editar Programação Expedição
+                </h2>
+
+                <span class="badge bg-secondary fs-6">
+                    Área Administrativa
+                </span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="/admin/programacao-expedicao" class="btn btn-light">
+                Voltar
+            </a>
+
+            <a href="/logout" class="btn btn-danger">
+                Sair
+            </a>
+        </div>
+
+    </div>
+
+    <div class="box">
+
+        <form method="POST">
+
+            <div class="row">
+
+                {% for coluna in colunas %}
+
+                    <div class="col-md-4 mb-3">
+
+                        <label>
+                            {{ coluna.replace('_', ' ').title() }}
+                        </label>
+
+                        {% if coluna == 'info_agenda_entrega' %}
+
+                            <textarea
+                                name="{{ coluna }}"
+                                class="form-control"
+                                rows="3">{{ registro[coluna] or '' }}</textarea>
+
+                        {% elif coluna in colunas_numero %}
+
+                            <input
+                                type="number"
+                                step="0.001"
+                                name="{{ coluna }}"
+                                class="form-control"
+                                value="{{ registro[coluna] or '' }}">
+
+                        {% else %}
+
+                            <input
+                                type="text"
+                                name="{{ coluna }}"
+                                class="form-control"
+                                value="{{ registro[coluna] or '' }}">
+
+                        {% endif %}
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-primary">
+                    Salvar Alterações
+                </button>
+
+                <a href="/admin/programacao-expedicao" class="btn btn-secondary">
+                    Cancelar
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

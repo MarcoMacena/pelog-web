@@ -50,6 +50,10 @@
                 Programação CROSS
             </a>
 
+            <a href="/admin/programacao-expedicao" class="btn btn-secondary me-2">
+                Programação Expedição
+            </a>
+
             <a href="/registros_encarregado" class="btn btn-success me-2">
                 Registros Operacionais
             </a>
@@ -142,6 +146,8 @@
                         <th>Horário Autorização</th>
                         <th>Início Doca</th>
                         <th>Fim Doca</th>
+                        <th>Saida Portaria</th>
+                        <th>Saida Registrada Por</th>
                         <th>Romaneio/Manifesto</th>
                         <th>SKU</th>
                         <th>Notas</th>
@@ -209,6 +215,11 @@
                                     Na Doca
                                 </span>
 
+                            {% elif c.status == 'doca_finalizada' %}
+                                <span class="badge bg-warning text-dark">
+                                    Doca Finalizada
+                                </span>
+
                             {% elif c.status == 'finalizado' %}
                                 <span class="badge bg-secondary">
                                     Finalizado
@@ -251,6 +262,18 @@
                             {% else %}
                                 -
                             {% endif %}
+                        </td>
+
+                        <td>
+                            {% if c.horario_saida %}
+                                {{ c.horario_saida.strftime("%d/%m/%Y %H:%M") }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ c.saida_registrada_por or '-' }}
                         </td>
 
                         <td>

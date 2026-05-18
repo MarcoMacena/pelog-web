@@ -32,6 +32,10 @@
             background-color: #d4edda !important;
         }
 
+        .linha-doca-finalizada {
+            background-color: #fff3cd !important;
+        }
+
         .btn-setor {
             min-width: 170px;
             font-weight: bold;
@@ -127,12 +131,13 @@
                     <th>Setor</th>
                     <th>Status</th>
                     <th>Doca</th>
+                    <th>Saida</th>
                 </tr>
             </thead>
 
             <tbody id="tabela-portaria">
                 {% for c in caminhoes %}
-                <tr class="{% if c.status == 'autorizado' %}linha-autorizado{% elif c.status == 'na_doca' %}linha-doca{% endif %}">
+                <tr class="{% if c.status == 'autorizado' %}linha-autorizado{% elif c.status == 'na_doca' %}linha-doca{% elif c.status == 'doca_finalizada' %}linha-doca-finalizada{% endif %}">
                     <td>{{ c.placa }}</td>
                     <td>{{ c.motorista }}</td>
                     <td>{{ c.empresa }}</td>
@@ -156,6 +161,8 @@
                             <span class="badge bg-info text-dark">Autorizado</span>
                         {% elif c.status == 'na_doca' %}
                             <span class="badge bg-success">Na Doca</span>
+                        {% elif c.status == 'doca_finalizada' %}
+                            <span class="badge bg-warning text-dark">Doca Finalizada</span>
                         {% elif c.status == 'finalizado' %}
                             <span class="badge bg-secondary">Finalizado</span>
                         {% else %}
@@ -164,6 +171,18 @@
                     </td>
 
                     <td>{{ c.doca or '-' }}</td>
+
+                    <td>
+                        {% if c.status == 'doca_finalizada' %}
+                            <form method="POST" action="/finalizar_saida/{{ c.id }}">
+                                <button class="btn btn-danger btn-sm">
+                                    Registrar Saida
+                                </button>
+                            </form>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -188,6 +207,10 @@
 
         if (status === "na_doca") {
             return '<span class="badge bg-success">Na Doca</span>';
+        }
+
+        if (status === "doca_finalizada") {
+            return '<span class="badge bg-warning text-dark">Doca Finalizada</span>';
         }
 
         if (status === "finalizado") {
@@ -227,6 +250,22 @@
                         classe = "linha-doca";
                     }
 
+                    if (c.status === "doca_finalizada") {
+                        classe = "linha-doca-finalizada";
+                    }
+
+                    let botaoSaida = "-";
+
+                    if (c.status === "doca_finalizada") {
+                        botaoSaida = `
+                            <form method="POST" action="/finalizar_saida/${c.id}">
+                                <button class="btn btn-danger btn-sm">
+                                    Registrar Saida
+                                </button>
+                            </form>
+                        `;
+                    }
+
                     html += `
                         <tr class="${classe}">
                             <td>${c.placa || "-"}</td>
@@ -237,6 +276,7 @@
                             <td>${badgeSetor(c.setor_doca)}</td>
                             <td>${badgeStatus(c.status)}</td>
                             <td><strong>${c.doca || "-"}</strong></td>
+                            <td>${botaoSaida}</td>
                         </tr>
                     `;
 

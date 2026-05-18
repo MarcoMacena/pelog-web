@@ -24,6 +24,15 @@
             font-size:13px;
         }
 
+        .justificativa-box{
+            display:none;
+            min-width:260px;
+        }
+
+        .justificativa-texto{
+            white-space:pre-line;
+        }
+
     </style>
 
 </head>
@@ -96,6 +105,8 @@
                         <th>CPF</th>
                         <th>Veículo</th>
                         <th>Horário Chegada</th>
+                        <th>Horário Saída</th>
+                        <th>Justificativa</th>
                         <th>Ação</th>
                     </tr>
 
@@ -151,6 +162,57 @@
 
                     <td>
 
+                        {% if item.horario_saida %}
+
+                            <span class="badge bg-primary">
+                                {{ item.horario_saida.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
+
+                            <br>
+
+                            <small>
+                                {{ item.usuario_saida }}
+                            </small>
+
+                        {% else %}
+
+                            <span class="badge bg-secondary">
+                                -
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if item.justificativa %}
+
+                            <div class="justificativa-texto">
+                                {{ item.justificativa }}
+                            </div>
+
+                            <small class="text-muted">
+                                {{ item.usuario_justificativa or '-' }}
+                                {% if item.horario_justificativa %}
+                                    - {{ item.horario_justificativa.strftime('%d/%m/%Y %H:%M') }}
+                                {% endif %}
+                            </small>
+
+                        {% else %}
+
+                            <span class="text-muted">
+                                -
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <div class="d-flex gap-2 flex-wrap">
+
                         {% if not item.horario_chegada %}
 
                         <form method="POST"
@@ -165,10 +227,54 @@
                         {% else %}
 
                         <button class="btn btn-secondary btn-sm" disabled>
-                            Registrado
+                            Chegada Registrada
                         </button>
 
                         {% endif %}
+
+                        {% if item.horario_chegada and not item.horario_saida %}
+
+                        <form method="POST"
+                              action="/cross/registrar_saida/{{ item.id }}">
+
+                            <button class="btn btn-success btn-sm">
+                                Registrar Saída
+                            </button>
+
+                        </form>
+
+                        {% elif item.horario_saida %}
+
+                        <button class="btn btn-secondary btn-sm" disabled>
+                            Saída Registrada
+                        </button>
+
+                        {% endif %}
+
+                        <button type="button"
+                                class="btn btn-primary btn-sm"
+                                onclick="abrirJustificativa('{{ item.id }}')">
+                            Justificativa
+                        </button>
+
+                        </div>
+
+                        <form method="POST"
+                              action="/cross/registrar_justificativa/{{ item.id }}"
+                              class="justificativa-box mt-2"
+                              id="justificativa-{{ item.id }}">
+
+                            <textarea name="justificativa"
+                                      class="form-control form-control-sm mb-2"
+                                      rows="3"
+                                      placeholder="Digite a justificativa..."
+                                      required>{{ item.justificativa or '' }}</textarea>
+
+                            <button class="btn btn-primary btn-sm">
+                                Salvar
+                            </button>
+
+                        </form>
 
                     </td>
 
@@ -185,6 +291,18 @@
     </div>
 
 </div>
+
+<script>
+    function abrirJustificativa(id) {
+        const box = document.getElementById(`justificativa-${id}`);
+
+        if (!box) {
+            return;
+        }
+
+        box.style.display = box.style.display === "block" ? "none" : "block";
+    }
+</script>
 
 </body>
 </html>
