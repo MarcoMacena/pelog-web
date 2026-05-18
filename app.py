@@ -177,6 +177,7 @@ MAPA_COLUNAS_EXCEL = {
     "nr nfe": "numero_nfe",
     "nrº nfe": "numero_nfe",
     "numero nfe": "numero_nfe",
+    "nr doc nfe": "numero_nfe",
     "numero dt subsequente": "numero_dt_subsequente",
     "n dt subsequente": "numero_dt_subsequente",
     "inf agenda entrega": "info_agenda_entrega",
@@ -186,6 +187,7 @@ MAPA_COLUNAS_EXCEL = {
     "numero pedido": "numero_pedido",
     "n pedido": "numero_pedido",
     "chave acesso": "chave_acesso",
+    "chave de acesso de 44 posicoes": "chave_acesso",
     "documento vendas compras": "documento_vendas_compras",
     "data pedido": "data_pedido",
     "data transporte": "data_transporte",
@@ -275,6 +277,17 @@ COLUNAS_NUMERO = [
     "qtde_remessa",
     "volume_acumulado",
     "qtd_teorica_paletizacao_convertida",
+]
+
+
+COLUNAS_PROGRAMACAO_CD = [
+    "numero_transporte",
+    "nome_transportadora",
+    "descricao_veiculo",
+    "numero_nfe",
+    "data_nfe",
+    "chave_acesso",
+    "data_agenda_entrega",
 ]
 
 
@@ -701,16 +714,18 @@ def buscar_programacoes(tabela, busca="", data_inicio="", data_fim=""):
                 nome_cliente_fornecedor ILIKE %s OR
                 local ILIKE %s OR
                 nome_transportadora ILIKE %s OR
+                descricao_veiculo ILIKE %s OR
                 material ILIKE %s OR
                 numero_nfe ILIKE %s OR
                 numero_transporte ILIKE %s OR
+                chave_acesso ILIKE %s OR
                 placa_composicao ILIKE %s OR
                 placa_simples_veiculo ILIKE %s OR
                 nome_motorista ILIKE %s
             )
         """
         termo = f"%{busca}%"
-        params.extend([termo] * 9)
+        params.extend([termo] * 11)
 
     if data_inicio:
         query += " AND data_agenda_entrega >= %s"
@@ -1330,7 +1345,7 @@ def editar_programacao_cd(id):
     if request.method == "POST":
         valores = []
 
-        for coluna in COLUNAS_PROGRAMACAO:
+        for coluna in COLUNAS_PROGRAMACAO_CD:
             valor = request.form.get(coluna)
 
             if coluna in COLUNAS_DATA:
@@ -1344,7 +1359,7 @@ def editar_programacao_cd(id):
 
         valores.append(id)
 
-        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO])
+        set_sql = ", ".join([f"{coluna} = %s" for coluna in COLUNAS_PROGRAMACAO_CD])
 
         cur.execute(f"""
             UPDATE programacao_cd
@@ -1375,7 +1390,7 @@ def editar_programacao_cd(id):
     return render_template(
         "editar_programacao_cd.html",
         registro=registro,
-        colunas=COLUNAS_PROGRAMACAO,
+        colunas=COLUNAS_PROGRAMACAO_CD,
         usuario=session.get("usuario"),
         perfil=session.get("tipo")
     )
@@ -1861,13 +1876,13 @@ def exportar_programacao_cd():
     ws = wb.active
     ws.title = "Programacao CD"
 
-    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO + ["criado_em"]
+    cabecalhos = ["ID"] + COLUNAS_PROGRAMACAO_CD + ["criado_em"]
     ws.append(cabecalhos)
 
     for item in dados:
         linha = [item.get("id")]
 
-        for coluna in COLUNAS_PROGRAMACAO:
+        for coluna in COLUNAS_PROGRAMACAO_CD:
             linha.append(item.get(coluna))
 
         linha.append(item.get("criado_em"))

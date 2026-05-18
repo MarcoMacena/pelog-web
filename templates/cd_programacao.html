@@ -90,13 +90,13 @@
                 <thead class="table-dark">
 
                     <tr>
-                        <th>ID</th>
-                        <th>Motorista</th>
-                        <th>Transportadora</th>
-                        <th>Placa</th>
-                        <th>NF</th>
-                        <th>Material</th>
-                        <th>Agenda</th>
+                        <th>Nº Transporte</th>
+                        <th>Nome Transportadora</th>
+                        <th>Descrição Veículo</th>
+                        <th>Nrº Doc NFe</th>
+                        <th>Data NFe</th>
+                        <th>Chave de Acesso</th>
+                        <th>Data Agenda Entrega</th>
                     </tr>
 
                 </thead>
@@ -107,21 +107,13 @@
 
                     <tr>
 
-                        <td>{{ item.id }}</td>
-
-                        <td>{{ item.nome_motorista }}</td>
-
+                        <td>{{ item.numero_transporte or '-' }}</td>
                         <td>{{ item.nome_transportadora }}</td>
-
-                        <td>
-                            {{ item.placa_composicao or item.placa_simples_veiculo }}
-                        </td>
-
-                        <td>{{ item.numero_nfe }}</td>
-
-                        <td>{{ item.material }}</td>
-
-                        <td>{{ item.data_agenda_entrega }}</td>
+                        <td>{{ item.descricao_veiculo or '-' }}</td>
+                        <td>{{ item.numero_nfe or '-' }}</td>
+                        <td>{{ item.data_nfe or '-' }}</td>
+                        <td>{{ item.chave_acesso or '-' }}</td>
+                        <td>{{ item.data_agenda_entrega or '-' }}</td>
 
                     </tr>
 
