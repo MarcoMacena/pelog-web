@@ -1604,6 +1604,23 @@ def limpar_programacao_expedicao():
     return redirect(url_for("admin_programacao_expedicao"))
 
 
+@app.route("/admin/caminhoes/limpar", methods=["POST"])
+def limpar_caminhoes():
+    if not is_admin():
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM caminhoes;")
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("admin"))
+
+
 @app.route("/cd/programacao")
 def cd_programacao():
     if session.get("tipo") != "encarregado" and session.get("tipo") != "admin":

@@ -125,6 +125,14 @@
 
         <h4>Visão Geral dos Caminhões</h4>
 
+        <form method="POST"
+              action="/admin/caminhoes/limpar"
+              onsubmit="return confirm('Deseja limpar todos os registros da Visão Geral dos Caminhões? Esta ação não apaga as programações.');">
+            <button class="btn btn-danger mb-3">
+                Limpar Visão Geral dos Caminhões
+            </button>
+        </form>
+
         <div class="table-responsive">
 
             <table class="table table-bordered table-striped mt-3">
